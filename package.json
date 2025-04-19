@@ -6,6 +6,10 @@
     "dev": "bun run app/main.ts"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/dns-packet": "^5.6.5"
+  },
+  "dependencies": {
+    "dns-packet": "^5.6.1"
   }
 }
