@@ -29,10 +29,10 @@ export class DNSMessageHeader {
     let byte = 0;
     // if the boolean for is response is true, we do bitwise OR
     if (this.isResponse) byte |= 0b10000000; // 1 byte (of 8) taken
-    byte |= this.opCode << 3; // 2-5 bytes taken
+    byte |= this.opCode << 3; // 2-5 bits taken
     if (this.isAuthoritativeAnswer) byte |= 0b00000100; // 6th
-    if (this.isTruncated) byte |= 0b00000100; // 7th
-    if (this.isRecursionDesired) byte |= 0b00000100; // 8th
+    if (this.isTruncated) byte |= 0b00000010; // 7th
+    if (this.isRecursionDesired) byte |= 0b00000001; // 8th
     byteArray[2] = byte;
     // RA, Z (reserved), RCODE
     byte = 0;
@@ -52,10 +52,12 @@ export class DNSMessageHeader {
     [lowByte, highByte] = encodeBigEndian(this.authorityRecordCount);
     byteArray[8] = highByte;
     byteArray[9] = lowByte;
-    // NSCOUNT
+    // ARCOUNT
     [lowByte, highByte] = encodeBigEndian(this.additionalRecordCount);
     byteArray[10] = highByte;
     byteArray[11] = lowByte;
+    console.log("byteArray", byteArray);
+    
     return byteArray;
   }
 }
