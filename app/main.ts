@@ -29,7 +29,7 @@ const defaultHeader = new DNSHeader({ id: 1234, qr: 1, qdcount: 1 });
 
 // dns default question
 const defaultQuestion = new DNSQuestion({
-  name: "google.com",
+  name: "codecrafters.io",
   type: 1,
   class: 1,
 });

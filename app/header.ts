@@ -3,6 +3,14 @@ export enum OpCode {
    * Standard query, response to query.
    */
   STANDARD_QUERY = 0,
+  /**
+   * Inverse query.
+   */
+  INVERSE_QUERY = 1,
+  /**
+   * Server status request.
+   */
+  SERVER_STATUS = 2,
 }
 export enum ResponseCode {
   /**
@@ -13,10 +21,26 @@ export enum ResponseCode {
    * Format error - The name server was unable to interpret the query.
    */
   FORMAT_ERROR = 1,
+  /**
+   * Server failure - The name server was unable to process this query due to a problem with the name server.
+   */
+  SERVER_FAILURE = 2,
+  /**
+   * Name Error - Meaningful only for responses from an authoritative name server, this code signifies that the domain name referenced in the query does not exist.
+   */
+  NAME_ERROR = 3,
+  /**
+   * Not Implemented - The name server does not support the requested kind of query.
+   */
+  NOT_IMPLEMENTED = 4,
+  /**
+   * Refused - The name server refuses to perform the specified operation for policy reasons. For example, a name server may not wish to provide the information to the particular requester, or a name server may not wish to perform a particular operation (e.g., zone transfer) for particular data.
+   */
+  REFUSED = 5,
 }
 export interface TDNSHeader {
   /**
-   * The identification number copied the query and response.
+   * A 16 bit identifier assigned by the program that generates any kind of query.
    */
   id: number;
   /**
@@ -46,18 +70,19 @@ export interface TDNSHeader {
    */
   rd: number;
   /**
-   * Recursion Available - this be is set or cleared in a response
-   * as a hint to the name server whether recursive query support is available
-   * in the name server.
+   * Recursion Available - this be is set or cleared in a response,
+   * and denotes whether recursive query support is available in the name server.
    */
   ra: number;
   /**
-   * Reserved for future use.  Must be zero in all queries and responses.
+   * Reserved for future use.
+   * Must be zero in all queries and responses.
    */
   z: number;
   /**
    * Response code - this 4 bit field is set as part of
-   * responses.  The values have the following interpretation:
+   * responses.
+   * The values have the following interpretation:
    */
   rcode: ResponseCode;
   /**
@@ -105,13 +130,13 @@ export class DNSHeader {
     // The opcode is the next 4 bits
     // The aa, tc, rd, ra, z, and rcode are the next 6 bits
     const flags =
-      this.qr |
-      this.opcode |
-      this.aa |
-      this.tc |
-      this.rd |
-      this.ra |
-      this.z |
+      this.qr << 15 |
+      this.opcode << 11 |
+      this.aa << 10 |
+      this.tc << 9 |
+      this.rd << 8 |
+      this.ra << 7 |
+      this.z << 4 |
       this.rcode;
     header.writeInt16BE(flags, 2);
     // The next 2 bytes are the qdcount
