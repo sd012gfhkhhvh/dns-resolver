@@ -1,7 +1,6 @@
 import * as dgram from "dgram";
 import dnsPacket from "dns-packet"; // 3rd party module to decode and encode DNS packets
-import DNSQuestion from "./question";
-import DNSHeader from "./header";
+import { DNSPacket } from "./dns-packet/DNSPacket";
 
 //socket connection
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
@@ -24,30 +23,24 @@ udpSocket.on("close", () => {
   console.log("server closed");
 });
 
-// dns default header
-const defaultHeader = new DNSHeader({ id: 1234, qr: 1, qdcount: 1 });
-
-// dns default question
-const defaultQuestion = new DNSQuestion({
-  name: "codecrafters.io",
-  type: 1,
-  class: 1,
-});
-
 // receive data
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
-    const DecodedPacket = dnsPacket.decode(data);
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
     console.log("raw packet : ", data);
-    console.log("decoded packet : ", DecodedPacket);
 
-    const responseHeader = defaultHeader.encode();
-    const responseQuestion = defaultQuestion.encode();
+    // decode packet
+    const decodedPacket = DNSPacket.decode(data);
+    const decodedDnsObject = decodedPacket.toObject();
+    console.log("decoded packet : ", decodedDnsObject);
 
-    const response = Buffer.concat([responseHeader, responseQuestion]);
+    const response = DNSPacket.encodeRaw(decodedDnsObject);
+
     console.log("response packet : ", response);
-    console.log("response packet Decoded : ", dnsPacket.decode(response));
+    console.log(
+      "response packet Decoded : ",
+      DNSPacket.decode(response).toObject()
+    );
     // send data
     udpSocket.send(response, remoteAddr.port, remoteAddr.address);
   } catch (e) {
@@ -57,5 +50,5 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
 /*
  * Use dig command to test the server
- * dig @127.0.0.1 -p 2053 +qid=1234 google.com
+ * dig @127.0.0.1 -p 2053 +qid=1234 +noedns +noad google.com
  */
