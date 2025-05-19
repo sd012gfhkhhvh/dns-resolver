@@ -1,6 +1,8 @@
 import * as dgram from "dgram";
 import dnsPacket from "dns-packet"; // 3rd party module to decode and encode DNS packets
 import { DNSPacket } from "./dns-packet/DNSPacket";
+import { recursiveResolver } from "./recursive-resolver";
+import type { DNSPacketType } from "./types";
 
 //socket connection
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
@@ -30,19 +32,20 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     console.log("raw packet : ", data);
 
     // decode packet
-    const decodedPacket = DNSPacket.decode(data);
-    const decodedDnsObject = decodedPacket.toObject();
-    console.log("decoded packet : ", decodedDnsObject);
+    const decodedDnsQueryPacket = DNSPacket.decode(data);
+    const decodedDnsQueryObject = decodedDnsQueryPacket.toObject();
+    console.log("decoded packet : ", decodedDnsQueryObject);
 
-    const response = DNSPacket.encodeRaw(decodedDnsObject);
-
-    console.log("response packet : ", response);
-    console.log(
-      "response packet Decoded : ",
-      DNSPacket.decode(response).toObject()
+    // resolve query
+    const dnsResponseObject: DNSPacketType = recursiveResolver(
+      decodedDnsQueryObject
     );
+    const responseBuffer = DNSPacket.encodeRaw(dnsResponseObject);
+
+    console.log("response packet : ", responseBuffer);
+    console.log("response packet Decoded : ", dnsResponseObject);
     // send data
-    udpSocket.send(response, remoteAddr.port, remoteAddr.address);
+    udpSocket.send(responseBuffer, remoteAddr.port, remoteAddr.address);
   } catch (e) {
     console.log(`Error sending data: ${e}`);
   }

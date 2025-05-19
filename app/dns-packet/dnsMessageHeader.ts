@@ -28,7 +28,7 @@ export class DNSMessageHeader {
     // QR, OPCODE, AA, TC, RD -- 3RD BYTE
     let byte = 0;
     // if the boolean for is response is true, we do bitwise OR
-    if (this.isResponse) byte |= 0b10000000; // 1 byte (of 8) taken
+    if (this.isResponse) byte |= 0b10000000; // 1 bit (of 8) taken
     byte |= this.opCode << 3; // 2-5 bits taken
     if (this.isAuthoritativeAnswer) byte |= 0b00000100; // 6th
     if (this.isTruncated) byte |= 0b00000010; // 7th

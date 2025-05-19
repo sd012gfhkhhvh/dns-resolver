@@ -200,7 +200,7 @@ const dnsPacketRaw = {
       class: RecordClass.IN,
       ttl: 3600,
       rdlength: 4,
-      rdata: Buffer.from([1, 2, 3, 4]),
+      rdata: "1.2.3.4",
     },
     {
       name: "mail.google.com",
@@ -208,7 +208,7 @@ const dnsPacketRaw = {
       class: RecordClass.IN,
       ttl: 3600,
       rdlength: 4,
-      rdata: Buffer.from([2, 2, 3, 4]),
+      rdata: "2.2.3.4",
     },
   ],
   authorities: [
@@ -218,7 +218,7 @@ const dnsPacketRaw = {
       class: RecordClass.IN,
       ttl: 3600,
       rdlength: 4,
-      rdata: Buffer.from([3, 2, 3, 4]),
+      rdata: "3.2.3.4",
     },
   ],
   additionals: [
@@ -228,7 +228,7 @@ const dnsPacketRaw = {
       class: RecordClass.IN,
       ttl: 3600,
       rdlength: 4,
-      rdata: Buffer.from([4, 2, 3, 4]),
+      rdata: "4.2.3.4",
     },
   ],
 };

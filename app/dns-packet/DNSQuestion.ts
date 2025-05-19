@@ -88,8 +88,8 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
     buffer: Buffer,
     offset: number = 0
   ): { result: DNSQuestion; nextOffset: number } {
-    const decodedName = decodeDomainName(buffer, offset);
-    const nameBufferSize = decodedName.length + 2; // 2 bytes for label lengths, e.g. google.com(len = 10) -> 0x06 0x67 0x6f 0x6f 0x67 0x6c 0x65 0x03 0x63 0x6f 0x6d 0x00 (len = 12)
+    const { domainName: decodedName, bufferLength: nameBufferSize } =
+      decodeDomainName(buffer, offset);
     return {
       result: new DNSQuestion({
         name: decodedName,

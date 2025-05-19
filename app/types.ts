@@ -156,8 +156,10 @@ export interface DNSAnswerType {
   /**
    * The data for the resource record.
    */
-  rdata?: Buffer;
+  rdata?: RDataType;
 }
+
+export type RDataType = string; // TODO: add more types for different record types
 
 /**
  * The possible types of resource records.
@@ -227,6 +229,25 @@ export enum RecordType {
    * text strings
    */
   TXT = 16,
+}
+
+export enum RecordTypeString {
+  A = "A",
+  NS = "NS",
+  MD = "MD",
+  MF = "MF",
+  CNAME = "CNAME",
+  SOA = "SOA",
+  MB = "MB",
+  MG = "MG",
+  MR = "MR",
+  NULL = "NULL",
+  WKS = "WKS",
+  PTR = "PTR",
+  HINFO = "HINFO",
+  MINFO = "MINFO",
+  MX = "MX",
+  TXT = "TXT",
 }
 
 /**

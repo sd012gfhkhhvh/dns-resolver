@@ -1,5 +1,10 @@
 import { DNSAnswer } from "./dns-packet/DNSAnswer";
-import type { DNSAnswerType } from "./types";
+import {
+  RecordType,
+  RecordTypeString,
+  type DNSAnswerType,
+  type RDataType,
+} from "./types";
 
 /**
  * Encodes a domain name into the DNS wire format.
@@ -32,11 +37,25 @@ export function encodeDomainNameAlt(domainName: string): Buffer {
 }
 
 /**
- * Decodes a DNS wire format domain name into a string.
- * @param buffer The DNS wire format domain name.
+ * Decodes a DNS domain name from the DNS wire format.
+ *
+ * @param buffer - The Buffer containing the DNS packet.
+ * @param offset - The offset into the Buffer where the domain name starts.
  * @returns The decoded domain name as a string.
  */
-export function decodeDomainName(buffer: Buffer, offset: number = 0): string {
+export function decodeDomainName(
+  buffer: Buffer,
+  offset: number = 0
+): { domainName: string; bufferLength: number } {
+  // If the buffer is a pointer to another label sequence, decode the pointer
+  if (isPointer(buffer, offset)) {
+    const pointerOffset = decodePointer(buffer.subarray(offset, offset + 2));
+    return {
+      domainName: decodeDomainName(buffer, pointerOffset).domainName,
+      bufferLength: 2, // 2 bytes for the pointer
+    };
+  }
+
   let startIndex = offset;
   const labels: string[] = [];
 
@@ -51,7 +70,66 @@ export function decodeDomainName(buffer: Buffer, offset: number = 0): string {
     startIndex += labelLength + 1;
   }
 
-  return labels.join(".");
+  return {
+    domainName: labels.join("."),
+    bufferLength: startIndex - offset + 1,
+  };
+}
+
+/**
+ * Checks if the given buffer at the given offset is a DNS pointer.
+ * A DNS pointer is a 2-byte sequence that starts with two 1 bits, since the label must begin with two zero bits because
+ *  labels are restricted to 63 octets or less.
+ * @param buffer The buffer to check.
+ * @param offset The offset into the buffer to check.
+ * @returns True if the buffer is a DNS pointer, false otherwise.
+ */
+export function isPointer(buffer: Buffer, offset: number = 0) {
+  let firstByte = buffer[offset].toString(2).padStart(8, "0");
+  return firstByte.startsWith("11"); // if the first two bits are '1' then it is a pointer
+}
+
+/**
+ * Encodes a pointer by creating a two-octet sequence.
+ *
+ * @param {number} offset - The offset from the start of the message.
+ * @returns {Buffer} - The encoded pointer as a two-octet sequence.
+ */
+export function encodePointer(offset: number): Buffer {
+  // Convert offset to 14-bit binary value
+  const offsetBinary = (offset & 0x3fff).toString(2).padStart(14, "0");
+
+  // Prepend two 1s
+  const pointerBinary = "11" + offsetBinary;
+
+  // Convert to two-octet sequence
+  const pointerOctets = Buffer.alloc(2);
+  pointerOctets[0] = parseInt(pointerBinary.slice(0, 8), 2);
+  pointerOctets[1] = parseInt(pointerBinary.slice(8), 2);
+
+  return pointerOctets;
+}
+
+/**
+ * Decodes a pointer by extracting the offset from the two-octet sequence.
+ *
+ * @param {Buffer} pointerBuffer - The encoded pointer as a 2-byte Buffer.
+ * @returns {number} - The decoded offset.
+ */
+export function decodePointer(pointerBuffer: Buffer): number {
+  // Convert 2-byte Buffer to 16-bit binary value
+  const pointerBinary = pointerBuffer
+    .readUInt16BE(0)
+    .toString(2)
+    .padStart(16, "0");
+
+  // Remove first two bits (11)
+  const offsetBinary = pointerBinary.slice(2);
+
+  // Convert to integer
+  const offset = parseInt(offsetBinary, 2);
+
+  return offset;
 }
 
 /**
@@ -139,4 +217,40 @@ export function getAnswerBufferChunks(
     answerCOUNT--;
   }
   return { chunks: answerBufferChunks, size: startIndex - offset };
+}
+
+/**
+ * Validates a domain name against a regular expression pattern.
+ *
+ * The pattern ensures that the domain name consists of alphanumeric characters,
+ * and may include hyphens and dots, followed by a top-level domain with at least
+ * two alphabetic characters.
+ *
+ * @param domain - The domain name to validate.
+ * @returns A boolean indicating whether the domain name is valid.
+ */
+
+export function isValidDomain(domain: string) {
+  // Regular expression pattern for domain name validation
+  const domainRegex = /^[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/;
+
+  // Check if the domain matches the pattern
+  const isDomainValid = domainRegex.test(domain);
+
+  // Check if each label of the domain label sequence is of max length 63
+  const labels = domain.split(".");
+  const isLabelLengthValid = labels.every((label) => label.length <= 63);
+
+  // Return true if both checks pass
+  return isDomainValid && isLabelLengthValid;
+}
+
+/**
+ * Checks if a given string is a valid DNS record type.
+ *
+ * @param type - The string to check.
+ * @returns A boolean indicating whether the string is a valid DNS record type.
+ */
+export function isValidType(type: string) {
+  return RecordType[type.toUpperCase() as RecordTypeString] !== undefined;
 }
