@@ -2,7 +2,6 @@ import { RecordType, type RDataType } from "../types";
 import { decodeDomainName, encodeDomainName } from "../utils";
 
 // -------------------------------- decodeRecordData ----------------------------------
-
 /**
  * Decodes DNS record data from a Buffer.
  *
@@ -38,6 +37,12 @@ export function decodeARecord(
   return rDataBuffer.map((byte) => byte).join("."); // no need for explicit toString as map converts them into decimal digits and then join method converts them into string
 }
 
+/**
+ * Decodes a DNS AAAA record from a Buffer.
+ *
+ * @param buffer The Buffer containing the AAAA record.
+ * @returns The decoded AAAA record as a string.
+ */
 export function decodeAAAARecord(
   buffer: Buffer,
   offset: number,
@@ -47,6 +52,12 @@ export function decodeAAAARecord(
   return rDataBuffer.map((byte) => byte).join(":");
 }
 
+/**
+ * Decodes a DNS CNAME record from a Buffer.
+ *
+ * @param buffer The Buffer containing the CNAME record.
+ * @returns The decoded CNAME record as a string.
+ */
 export function decodeCNAMERecord(
   buffer: Buffer,
   offset: number,
@@ -56,6 +67,12 @@ export function decodeCNAMERecord(
   return domainName;
 }
 
+/**
+ * Decodes a DNS NS record from a Buffer.
+ *
+ * @param buffer The Buffer containing the NS record.
+ * @returns The decoded NS record as a string.
+ */
 export function decodeNSRecord(
   buffer: Buffer,
   offset: number,
@@ -65,6 +82,12 @@ export function decodeNSRecord(
   return domainName;
 }
 
+/**
+ * Decodes a DNS TXT record from a Buffer.
+ *
+ * @param buffer The Buffer containing the TXT record.
+ * @returns The decoded TXT record as a string.
+ */
 export function decodeTXTRecord(
   buffer: Buffer,
   offset: number,
@@ -99,28 +122,69 @@ export function encodeArecord(address: string): Buffer {
   return Buffer.from(octets);
 }
 
+/**
+ * Encodes a DNS AAAA record from a string.
+ *
+ * @param address The address to encode, in colon-separated hex notation.
+ * @returns The encoded AAAA record as a Buffer.
+ */
 export function encodeAAAARecord(address: string): Buffer {
   const octets = address.split(":").map((octet) => parseInt(octet, 16));
   return Buffer.from(octets);
 }
 
+/**
+ * Encodes a DNS CNAME record from a string.
+ *
+ * @param domainName The domain name to encode.
+ * @returns The encoded CNAME record as a Buffer.
+ */
 export function encodeCNAMERecord(domainName: string): Buffer {
   return encodeDomainName(domainName);
 }
 
+/**
+ * Encodes a DNS NS record from a string.
+ *
+ * @param domainName The domain name to encode.
+ * @returns The encoded NS record as a Buffer.
+ */
 export function encodeNSRecord(domainName: string): Buffer {
   return encodeDomainName(domainName);
 }
 
+/**
+ * Encodes a DNS TXT record from a string.
+ *
+ * @param data The data to encode.
+ * @returns The encoded TXT record as a Buffer.
+ */
 export function encodeTXTRecord(data: string): Buffer {
   const bytes = data.split("").map((char) => char.charCodeAt(0));
   return Buffer.from(bytes);
 }
 
 // typeMap ----------------------------------
+/**
+ * A map of record types to their respective decode and encode functions.
+ */
 export const typeMap: {
   [key in RecordType]: {
+    /**
+     * Decodes a DNS record of the specified type from a Buffer.
+     *
+     * @param buffer The Buffer containing the DNS packet.
+     * @param offset The offset into the Buffer where the record data starts.
+     * @param rdlength The length of the rdata field.
+     * @returns The decoded record data.
+     */
     decodeFn: (buffer: Buffer, offset: number, rdlength: number) => RDataType;
+    /**
+     * Encodes a DNS record of the specified type into a Buffer.
+     *
+     * @param data The record data to encode.
+     * @returns The encoded record data as a Buffer.
+     */
     encodeFn: (data: RDataType) => Buffer;
   };
 } = {
