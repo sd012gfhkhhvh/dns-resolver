@@ -3,6 +3,7 @@ import { DNSHeader } from "./DNSHeader";
 import { DNSQuestion } from "./DNSQuestion";
 import { DNSAnswer } from "./DNSAnswer";
 import {
+  QR_FLAG,
   RecordClass,
   RecordType,
   type DNSAnswerType,
@@ -168,7 +169,7 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
 const dnsPacketRaw = {
   header: {
     id: 1234,
-    qr: 0,
+    qr: QR_FLAG.RESPONSE,
     opcode: 0,
     aa: 0,
     tc: 0,

@@ -88,15 +88,17 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
     buffer: Buffer,
     offset: number = 0
   ): { result: DNSQuestion; nextOffset: number } {
-    const { domainName: decodedName, bufferLength: nameBufferSize } =
-      decodeDomainName(buffer, offset);
+    const { domainName: decodedName, nextOffset } = decodeDomainName(
+      buffer,
+      offset
+    );
     return {
       result: new DNSQuestion({
         name: decodedName,
-        type: buffer.readUInt16BE(offset + nameBufferSize),
-        class: buffer.readUInt16BE(offset + nameBufferSize + 2),
+        type: buffer.readUInt16BE(nextOffset),
+        class: buffer.readUInt16BE(nextOffset + 2),
       }),
-      nextOffset: offset + nameBufferSize + 4,
+      nextOffset: nextOffset + 4,
     };
   }
 }

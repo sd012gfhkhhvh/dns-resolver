@@ -112,20 +112,17 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
     buffer: Buffer,
     offset: number = 0
   ): { result: DNSAnswer; nextOffset: number } {
-    const { domainName: decodedName, bufferLength: nameBufferSize } =
-      decodeDomainName(buffer, offset);
-
-    const type = buffer.readUInt16BE(offset + nameBufferSize);
-    const _class = buffer.readUInt16BE(offset + nameBufferSize + 2);
-    const ttl = buffer.readUInt32BE(offset + nameBufferSize + 4);
-
-    const rdlength = buffer.readUInt16BE(offset + nameBufferSize + 8); // 8 --> 2 byte for type, 2 byte for class, 4 byte for TTL
-    const rdata = decodeRecordData(
+    const { domainName: decodedName, nextOffset } = decodeDomainName(
       buffer,
-      offset + nameBufferSize + 10,
-      type,
-      rdlength
+      offset
     );
+
+    const type = buffer.readUInt16BE(nextOffset);
+    const _class = buffer.readUInt16BE(nextOffset + 2);
+    const ttl = buffer.readUInt32BE(nextOffset + 4);
+
+    const rdlength = buffer.readUInt16BE(nextOffset + 8); // 8 --> 2 byte for type, 2 byte for class, 4 byte for TTL
+    const rdata = decodeRecordData(buffer, nextOffset + 10, type, rdlength);
 
     return {
       result: new DNSAnswer({
@@ -136,7 +133,7 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
         rdlength,
         rdata,
       }),
-      nextOffset: offset + nameBufferSize + 10 + rdlength,
+      nextOffset: nextOffset + 10 + rdlength,
     };
   }
 }

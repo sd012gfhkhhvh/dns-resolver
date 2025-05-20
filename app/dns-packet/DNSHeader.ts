@@ -1,5 +1,5 @@
 import { BaseDNSComponent } from "./BaseDNSComponent";
-import { OpCode, ResponseCode, type DNSHeaderType } from "../types";
+import { OpCode, QR_FLAG, ResponseCode, type DNSHeaderType } from "../types";
 
 /**
  * Represents a DNS header.
@@ -11,7 +11,7 @@ import { OpCode, ResponseCode, type DNSHeaderType } from "../types";
  */
 export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
   id: number;
-  qr: number;
+  qr: QR_FLAG;
   opcode: OpCode;
   aa: number;
   tc: number;
@@ -45,7 +45,7 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
   constructor(data: Partial<DNSHeaderType> = {}) {
     super();
     this.id = data.id ?? 0;
-    this.qr = data.qr ?? 0;
+    this.qr = data.qr ?? QR_FLAG.QUERY;
     this.opcode = data.opcode ?? OpCode.STANDARD_QUERY;
     this.aa = data.aa ?? 0;
     this.tc = data.tc ?? 0;
@@ -177,7 +177,7 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
 
 const testHeader = new DNSHeader({
   id: 1234,
-  qr: 1,
+  qr: QR_FLAG.RESPONSE,
   // qdcount: 1,
   // ancount: 1,
 });

@@ -39,40 +39,48 @@ export function encodeDomainNameAlt(domainName: string): Buffer {
 /**
  * Decodes a DNS domain name from the DNS wire format.
  *
+ * The compression scheme allows a domain name in a message to be represented as either:
+ *     - a sequence of labels ending in a zero octet
+ *     - a pointer
+ *     - a sequence of labels ending with a pointer
+ *
  * @param buffer - The Buffer containing the DNS packet.
  * @param offset - The offset into the Buffer where the domain name starts.
  * @returns The decoded domain name as a string.
  */
 export function decodeDomainName(
   buffer: Buffer,
-  offset: number = 0
-): { domainName: string; bufferLength: number } {
-  // If the buffer is a pointer to another label sequence, decode the pointer
-  if (isPointer(buffer, offset)) {
-    const pointerOffset = decodePointer(buffer.subarray(offset, offset + 2));
-    return {
-      domainName: decodeDomainName(buffer, pointerOffset).domainName,
-      bufferLength: 2, // 2 bytes for the pointer
-    };
-  }
-
+  offset: number
+): { domainName: string; nextOffset: number } {
   let startIndex = offset;
   const labels: string[] = [];
 
   while (startIndex < buffer.length) {
-    const labelLength = buffer[startIndex];
-    if (labelLength === 0) break;
-    labels.push(
-      buffer
-        .subarray(startIndex + 1, startIndex + 1 + labelLength)
-        .toString("latin1")
-    );
-    startIndex += labelLength + 1;
+    if (isPointer(buffer, startIndex)) {
+      const pointerOffset = decodePointer(
+        buffer.subarray(startIndex, startIndex + 2)
+      );
+      labels.push(decodeDomainName(buffer, pointerOffset).domainName);
+      startIndex += 2;
+      break;
+    } else {
+      const labelLength = buffer[startIndex];
+      if (labelLength === 0) {
+        startIndex += 1;
+        break;
+      } // End the loop if the label length is 0, i.e null byte indicates the end of the domain name
+      labels.push(
+        buffer
+          .subarray(startIndex + 1, startIndex + 1 + labelLength)
+          .toString("latin1")
+      );
+      startIndex += labelLength + 1;
+    }
   }
 
   return {
     domainName: labels.join("."),
-    bufferLength: startIndex - offset + 1,
+    nextOffset: startIndex,
   };
 }
 
@@ -253,4 +261,14 @@ export function isValidDomain(domain: string) {
  */
 export function isValidType(type: string) {
   return RecordType[type.toUpperCase() as RecordTypeString] !== undefined;
+}
+
+/**
+ * Returns a random element from the given array.
+ *
+ * @param array - The array to pick an element from.
+ * @returns A random element from the array.
+ */
+export function pickRandomFromArray(array: Array<any>): any {
+  return array[Math.floor(Math.random() * array.length)];
 }

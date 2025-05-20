@@ -2,6 +2,7 @@ import express, { type Request, type Response } from "express";
 import { string, z } from "zod";
 import { isValidDomain, isValidType } from "./utils";
 import {
+  QR_FLAG,
   RecordClass,
   RecordType,
   RecordTypeString,
@@ -14,7 +15,8 @@ const app = express();
 
 const HTTP_PORT = 8080;
 const FORWARD_SERVER_PORT = 53;
-const FORWARD_SERVER_HOST = "8.8.8.8";
+// const FORWARD_SERVER_HOST = "198.41.0.4"; // a.root-servers.net
+const FORWARD_SERVER_HOST = "8.8.8.8"; // a.root-servers.net
 
 const querySchema = z.object({
   domain: z.string().refine(isValidDomain, {
@@ -47,7 +49,7 @@ app.get("/resolve", async (req: Request, res: Response) => {
     const dnsQueryObject: DNSPacketType = {
       header: {
         id: 1234,
-        qr: 0,
+        qr: QR_FLAG.QUERY,
         opcode: 0,
         aa: 0,
         tc: 0,

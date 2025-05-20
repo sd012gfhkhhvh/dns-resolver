@@ -1,3 +1,8 @@
+export enum QR_FLAG {
+  QUERY = 0,
+  RESPONSE = 1,
+}
+
 export enum OpCode {
   /**
    * Standard query, response to query.
@@ -229,6 +234,11 @@ export enum RecordType {
    * text strings
    */
   TXT = 16,
+
+  /**
+   * IPv6 address
+   */
+  AAAA = 28,
 }
 
 export enum RecordTypeString {
