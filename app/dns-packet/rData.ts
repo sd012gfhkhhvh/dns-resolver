@@ -108,12 +108,12 @@ export function decodeTXTRecord(
  *
  * <mname> <rname> <serial> <refresh> <retry> <expire> <minimum>
  *
- * MNAME: The <domain-name> of the name server that was the original or primary source of data for this zone.
- * RNAME: A <domain-name> which specifies the mailbox of the person responsible for this zone.
- * SERIAL: The unsigned 32 bit version number of the original copy of the zone. Zone transfers preserve this value. This value wraps and should be compared using sequence space arithmetic.
- * REFRESH: A 32 bit time interval before the zone should be refreshed.
- * RETRY: A 32 bit time interval that should elapse before a failed refresh should be retried.
- * EXPIRE: A 32 bit time value that specifies the upper limit on the time interval that can elapse before the zone is no longer authoritative.
+ * - MNAME: The <domain-name> of the name server that was the original or primary source of data for this zone.
+ * - RNAME: A <domain-name> which specifies the mailbox of the person responsible for this zone.
+ * - SERIAL: The unsigned 32 bit version number of the original copy of the zone. Zone transfers preserve this value. This value wraps and should be compared using sequence space arithmetic.
+ * - REFRESH: A 32 bit time interval before the zone should be refreshed.
+ * - RETRY: A 32 bit time interval that should elapse before a failed refresh should be retried.
+ * - EXPIRE: A 32 bit time value that specifies the upper limit on the time interval that can elapse before the zone is no longer authoritative.
  *
  * @param buffer The Buffer containing the SOA record.
  * @param offset The offset into the Buffer where the SOA record starts.
@@ -256,13 +256,13 @@ export function encodeTXTRecord(data: RDataType): Buffer {
  * Encodes a DNS SOA record from an object.
  *
  * @param data The data to encode, an object with the following properties:
- *   mname: the master name server domain name
- *   rname: the responsible person's domain name
- *   serial: the current serial number
- *   refresh: the refresh interval
- *   retry: the retry interval
- *   expire: the expire interval
- *   minimum: the minimum TTL
+ *   - mname: the master name server domain name
+ *   - rname: the responsible person's domain name
+ *   - serial: the current serial number
+ *   - refresh: the refresh interval
+ *   - retry: the retry interval
+ *   - expire: the expire interval
+ *   - minimum: the minimum TTL
  * @returns The encoded SOA record as a Buffer.
  */
 export function encodeSOARecord(data: RDataType): Buffer {

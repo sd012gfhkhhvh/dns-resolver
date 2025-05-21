@@ -1,10 +1,5 @@
 import { DNSAnswer } from "./dns-packet/DNSAnswer";
-import {
-  RecordType,
-  RecordTypeString,
-  type DNSAnswerType,
-  type RDataType,
-} from "./types";
+import { RecordType, RecordTypeString, type DNSAnswerType } from "./types";
 
 /**
  * Encodes a domain name into the DNS wire format.
