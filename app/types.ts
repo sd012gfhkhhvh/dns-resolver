@@ -164,8 +164,17 @@ export interface DNSAnswerType {
   rdata?: RDataType;
 }
 
-export type RDataType = string; // TODO: add more types for different record types
+export type RDataType = string | SOA_RECORD; // TODO: add more types for different record types
 
+export type SOA_RECORD = {
+  mname: string;
+  rname: string;
+  serial: number;
+  refresh: number;
+  retry: number;
+  expire: number;
+  minimum: number;
+};
 /**
  * The possible types of resource records.
  */

@@ -1,4 +1,4 @@
-import { RecordType, type RDataType } from "../types";
+import { RecordType, type RDataType, type SOA_RECORD } from "../types";
 import { decodeDomainName, encodeDomainName } from "../utils";
 
 // -------------------------------- decodeRecordData ----------------------------------
@@ -97,6 +97,62 @@ export function decodeTXTRecord(
   return rDataBuffer.map((byte) => String.fromCharCode(byte)).join("");
 }
 
+export function decodeSOARecord(
+  buffer: Buffer,
+  offset: number,
+  rdlength: number
+): {
+  mname: string;
+  rname: string;
+  serial: number;
+  refresh: number;
+  retry: number;
+  expire: number;
+  minimum: number;
+} {
+  const soaRecord = {} as {
+    mname: string;
+    rname: string;
+    serial: number;
+    refresh: number;
+    retry: number;
+    expire: number;
+    minimum: number;
+  };
+
+  let currentOffset = offset;
+  const { domainName: mname, nextOffset: mnameOffset } = decodeDomainName(
+    buffer,
+    currentOffset
+  );
+  soaRecord.mname = mname;
+  currentOffset = mnameOffset;
+
+  const { domainName: rname, nextOffset: rnameOffset } = decodeDomainName(
+    buffer,
+    currentOffset
+  );
+  soaRecord.rname = rname;
+  currentOffset = rnameOffset;
+
+  soaRecord.serial = buffer.readUInt32BE(currentOffset);
+  currentOffset += 4;
+
+  soaRecord.refresh = buffer.readUInt32BE(currentOffset);
+  currentOffset += 4;
+
+  soaRecord.retry = buffer.readUInt32BE(currentOffset);
+  currentOffset += 4;
+
+  soaRecord.expire = buffer.readUInt32BE(currentOffset);
+  currentOffset += 4;
+
+  soaRecord.minimum = buffer.readUInt32BE(currentOffset);
+  currentOffset += 4;
+
+  return soaRecord;
+}
+
 // -------------------------------- encodeRecordData ----------------------------------
 
 /**
@@ -117,7 +173,8 @@ export function encodeRecordData(data: RDataType, type: RecordType): Buffer {
  * @param address The address to encode, in dotted decimal notation.
  * @returns The encoded A record as a Buffer.
  */
-export function encodeArecord(address: string): Buffer {
+export function encodeArecord(address: RDataType): Buffer {
+  address = address as string;
   const octets = address.split(".").map((octet) => parseInt(octet));
   return Buffer.from(octets);
 }
@@ -128,7 +185,8 @@ export function encodeArecord(address: string): Buffer {
  * @param address The address to encode, in colon-separated hex notation.
  * @returns The encoded AAAA record as a Buffer.
  */
-export function encodeAAAARecord(address: string): Buffer {
+export function encodeAAAARecord(address: RDataType): Buffer {
+  address = address as string;
   const octets = address.split(":").map((octet) => parseInt(octet, 16));
   return Buffer.from(octets);
 }
@@ -139,8 +197,8 @@ export function encodeAAAARecord(address: string): Buffer {
  * @param domainName The domain name to encode.
  * @returns The encoded CNAME record as a Buffer.
  */
-export function encodeCNAMERecord(domainName: string): Buffer {
-  return encodeDomainName(domainName);
+export function encodeCNAMERecord(domainName: RDataType): Buffer {
+  return encodeDomainName(domainName as string);
 }
 
 /**
@@ -149,8 +207,8 @@ export function encodeCNAMERecord(domainName: string): Buffer {
  * @param domainName The domain name to encode.
  * @returns The encoded NS record as a Buffer.
  */
-export function encodeNSRecord(domainName: string): Buffer {
-  return encodeDomainName(domainName);
+export function encodeNSRecord(domainName: RDataType): Buffer {
+  return encodeDomainName(domainName as string);
 }
 
 /**
@@ -159,9 +217,45 @@ export function encodeNSRecord(domainName: string): Buffer {
  * @param data The data to encode.
  * @returns The encoded TXT record as a Buffer.
  */
-export function encodeTXTRecord(data: string): Buffer {
+export function encodeTXTRecord(data: RDataType): Buffer {
+  data = data as string;
   const bytes = data.split("").map((char) => char.charCodeAt(0));
   return Buffer.from(bytes);
+}
+
+export function encodeSOARecord(data: RDataType): Buffer {
+  data = data as SOA_RECORD;
+  const bufferArray: number[] = [];
+
+  bufferArray.push(...encodeDomainName(data.mname));
+  bufferArray.push(...encodeDomainName(data.rname));
+
+  bufferArray.push((data.serial >>> 24) & 0xff);
+  bufferArray.push((data.serial >>> 16) & 0xff);
+  bufferArray.push((data.serial >>> 8) & 0xff);
+  bufferArray.push(data.serial & 0xff);
+
+  bufferArray.push((data.refresh >>> 24) & 0xff);
+  bufferArray.push((data.refresh >>> 16) & 0xff);
+  bufferArray.push((data.refresh >>> 8) & 0xff);
+  bufferArray.push(data.refresh & 0xff);
+
+  bufferArray.push((data.retry >>> 24) & 0xff);
+  bufferArray.push((data.retry >>> 16) & 0xff);
+  bufferArray.push((data.retry >>> 8) & 0xff);
+  bufferArray.push(data.retry & 0xff);
+
+  bufferArray.push((data.expire >>> 24) & 0xff);
+  bufferArray.push((data.expire >>> 16) & 0xff);
+  bufferArray.push((data.expire >>> 8) & 0xff);
+  bufferArray.push(data.expire & 0xff);
+
+  bufferArray.push((data.minimum >>> 24) & 0xff);
+  bufferArray.push((data.minimum >>> 16) & 0xff);
+  bufferArray.push((data.minimum >>> 8) & 0xff);
+  bufferArray.push(data.minimum & 0xff);
+
+  return Buffer.from(bufferArray);
 }
 
 // typeMap ----------------------------------
@@ -207,8 +301,8 @@ export const typeMap: {
     encodeFn: encodeCNAMERecord,
   },
   [RecordType.SOA]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn: decodeSOARecord,
+    encodeFn: encodeSOARecord,
   },
   [RecordType.MB]: {
     decodeFn: (buffer: Buffer): RDataType => "Method not implemented",

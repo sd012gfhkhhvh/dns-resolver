@@ -2,7 +2,7 @@ import * as dgram from "dgram";
 import dnsPacket from "dns-packet"; // 3rd party module to decode and encode DNS packets
 import { DNSPacket } from "./dns-packet/DNSPacket";
 import { recursiveResolver } from "./recursive-resolver";
-import type { DNSPacketType } from "./types";
+import { QR_FLAG, ResponseCode } from "./types";
 
 //socket connection
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
@@ -38,19 +38,31 @@ udpSocket.on("message", async (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
     // resolve query
     const dnsResponseObject = await recursiveResolver(decodedDnsQueryObject);
-
+    let responseBuffer: Buffer;
     // if response is not found
     if (!dnsResponseObject) {
       console.log("address not found");
-
-      udpSocket.send("address not found", remoteAddr.port, remoteAddr.address);
+      responseBuffer = DNSPacket.encodeRaw({
+        header: {
+          ...decodedDnsQueryObject.header,
+          aa: 0,
+          ra: 1,
+          qr: QR_FLAG.RESPONSE,
+          rcode: ResponseCode.NAME_ERROR,
+        },
+        questions: decodedDnsQueryObject.questions,
+        answers: [],
+        authorities: [],
+        additionals: [],
+      });
     } else {
-      // send data
-      const responseBuffer = DNSPacket.encodeRaw(dnsResponseObject);
-      console.log("response packet : ", responseBuffer);
+      responseBuffer = DNSPacket.encodeRaw(dnsResponseObject);
+      console.log("response packet buffer: ", responseBuffer);
+      console.log("response packet length: ", responseBuffer.length);
       console.log("response packet Decoded : ", dnsResponseObject);
-      udpSocket.send(responseBuffer, remoteAddr.port, remoteAddr.address);
     }
+    // send data
+    udpSocket.send(responseBuffer, remoteAddr.port, remoteAddr.address);
   } catch (e) {
     console.log(`Error sending data: ${e}`);
   }
