@@ -94,9 +94,32 @@ export function decodeTXTRecord(
   rdlength: number
 ): string {
   const rDataBuffer = buffer.subarray(offset, offset + rdlength);
-  return rDataBuffer.map((byte) => String.fromCharCode(byte)).join("");
+  let result = "";
+  for (const byte of rDataBuffer) {
+    result += String.fromCharCode(byte);
+  }
+  return result;
 }
 
+/**
+ * Decodes a DNS SOA record from a Buffer.
+ *
+ * The SOA RDATA format is as follows:
+ *
+ * <mname> <rname> <serial> <refresh> <retry> <expire> <minimum>
+ *
+ * MNAME: The <domain-name> of the name server that was the original or primary source of data for this zone.
+ * RNAME: A <domain-name> which specifies the mailbox of the person responsible for this zone.
+ * SERIAL: The unsigned 32 bit version number of the original copy of the zone. Zone transfers preserve this value. This value wraps and should be compared using sequence space arithmetic.
+ * REFRESH: A 32 bit time interval before the zone should be refreshed.
+ * RETRY: A 32 bit time interval that should elapse before a failed refresh should be retried.
+ * EXPIRE: A 32 bit time value that specifies the upper limit on the time interval that can elapse before the zone is no longer authoritative.
+ *
+ * @param buffer The Buffer containing the SOA record.
+ * @param offset The offset into the Buffer where the SOA record starts.
+ * @param rdlength The length of the rdata field.
+ * @returns An object containing the decoded SOA record.
+ */
 export function decodeSOARecord(
   buffer: Buffer,
   offset: number,
@@ -219,10 +242,29 @@ export function encodeNSRecord(domainName: RDataType): Buffer {
  */
 export function encodeTXTRecord(data: RDataType): Buffer {
   data = data as string;
+  // to tackle each non-ascii characters like i.e. emoji, Å, å, Ä etc
+  for (const char of data) {
+    const code = char.codePointAt(0) as number;
+    if (code >= 0x80) data += `&#${code};`;
+    else data += char;
+  }
   const bytes = data.split("").map((char) => char.charCodeAt(0));
   return Buffer.from(bytes);
 }
 
+/**
+ * Encodes a DNS SOA record from an object.
+ *
+ * @param data The data to encode, an object with the following properties:
+ *   mname: the master name server domain name
+ *   rname: the responsible person's domain name
+ *   serial: the current serial number
+ *   refresh: the refresh interval
+ *   retry: the retry interval
+ *   expire: the expire interval
+ *   minimum: the minimum TTL
+ * @returns The encoded SOA record as a Buffer.
+ */
 export function encodeSOARecord(data: RDataType): Buffer {
   data = data as SOA_RECORD;
   const bufferArray: number[] = [];
