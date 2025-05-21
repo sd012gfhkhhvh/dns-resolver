@@ -54,6 +54,15 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
   encode(): Buffer {
     // Encode domain name to DNS format
     const nameBuffer = encodeDomainName(this.name);
+
+    const rData: Buffer = encodeRecordData(this.rdata, this.type);
+
+    let calculatedRdlength = rData.length;
+    // based on the presence of compression the rdlength can be different
+    if (this.rdlength !== calculatedRdlength) {
+      this.rdlength = calculatedRdlength;
+    }
+
     const bufferSize = nameBuffer.length + 10 + this.rdlength; // 2 bytes for type, 2 bytes for class, 4 bytes for TTL, 2 bytes for rdlength, and rdlength bytes for rdata
     const buffer = Buffer.alloc(bufferSize);
 
@@ -64,9 +73,8 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
     buffer.writeUInt16BE(this.type, nameBuffer.length);
     buffer.writeUInt16BE(this.class, nameBuffer.length + 2);
     buffer.writeUInt32BE(this.ttl, nameBuffer.length + 4);
-    buffer.writeUInt16BE(this.rdlength, nameBuffer.length + 8);
 
-    const rData: Buffer = encodeRecordData(this.rdata, this.type);
+    buffer.writeUInt16BE(this.rdlength, nameBuffer.length + 8);
 
     // Copy rdata into buffer
     rData.copy(buffer, nameBuffer.length + 10);
