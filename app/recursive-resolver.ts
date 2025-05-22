@@ -89,7 +89,7 @@ export async function recursiveLookup(
         ) {
           for (const cnameAnswer of cnameAnswers) {
             const cnameQuestion: DNSQuestionType = {
-              name: cnameAnswer.rdata || "",
+              name: cnameAnswer.rdata as string,
               type: RecordType.CNAME,
               class: 1,
             };
@@ -109,6 +109,7 @@ export async function recursiveLookup(
             ancount: answers.length,
             aa: 0,
             ra: 1,
+            // tc: 0,
             nscount: 0,
             arcount: 0,
           },
@@ -150,7 +151,7 @@ export async function recursiveLookup(
             };
           })
           .filter((authorityRecord) => {
-            if (isValidDomain(authorityRecord.name)) {
+            if (isValidDomain(String(authorityRecord.name))) {
               return authorityRecord;
             }
           });

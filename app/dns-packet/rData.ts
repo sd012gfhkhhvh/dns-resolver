@@ -185,8 +185,12 @@ export function decodeSOARecord(
  * @param type The type of the resource record.
  * @returns The encoded record data as a Buffer.
  */
-export function encodeRecordData(data: RDataType, type: RecordType): Buffer {
-  const buffer = typeMap[type].encodeFn(data);
+export function encodeRecordData(
+  data: RDataType,
+  type: RecordType,
+  nextOffset: number
+): Buffer {
+  const buffer = typeMap[type].encodeFn.apply(this, [data, nextOffset]);
   return buffer;
 }
 
@@ -196,7 +200,7 @@ export function encodeRecordData(data: RDataType, type: RecordType): Buffer {
  * @param address The address to encode, in dotted decimal notation.
  * @returns The encoded A record as a Buffer.
  */
-export function encodeArecord(address: RDataType): Buffer {
+export function encodeArecord(address: RDataType, nextOffset: number): Buffer {
   address = address as string;
   const octets = address.split(".").map((octet) => parseInt(octet));
   return Buffer.from(octets);
@@ -208,7 +212,10 @@ export function encodeArecord(address: RDataType): Buffer {
  * @param address The address to encode, in colon-separated hex notation.
  * @returns The encoded AAAA record as a Buffer.
  */
-export function encodeAAAARecord(address: RDataType): Buffer {
+export function encodeAAAARecord(
+  address: RDataType,
+  nextOffset: number
+): Buffer {
   address = address as string;
   const octets = address.split(":").map((octet) => parseInt(octet, 16));
   return Buffer.from(octets);
@@ -220,8 +227,15 @@ export function encodeAAAARecord(address: RDataType): Buffer {
  * @param domainName The domain name to encode.
  * @returns The encoded CNAME record as a Buffer.
  */
-export function encodeCNAMERecord(domainName: RDataType): Buffer {
-  return encodeDomainName(domainName as string);
+export function encodeCNAMERecord(
+  domainName: RDataType,
+  nextOffset: number
+): Buffer {
+  return encodeDomainName(
+    domainName as string,
+    this.dnsObject?.encodedLabels,
+    nextOffset
+  );
 }
 
 /**
@@ -230,8 +244,15 @@ export function encodeCNAMERecord(domainName: RDataType): Buffer {
  * @param domainName The domain name to encode.
  * @returns The encoded NS record as a Buffer.
  */
-export function encodeNSRecord(domainName: RDataType): Buffer {
-  return encodeDomainName(domainName as string);
+export function encodeNSRecord(
+  domainName: RDataType,
+  nextOffset: number
+): Buffer {
+  return encodeDomainName(
+    domainName as string,
+    this.dnsObject?.encodedLabels,
+    nextOffset
+  );
 }
 
 /**
@@ -240,14 +261,8 @@ export function encodeNSRecord(domainName: RDataType): Buffer {
  * @param data The data to encode.
  * @returns The encoded TXT record as a Buffer.
  */
-export function encodeTXTRecord(data: RDataType): Buffer {
+export function encodeTXTRecord(data: RDataType, nextOffset: number): Buffer {
   data = data as string;
-  // to tackle each non-ascii characters like i.e. emoji, Å, å, Ä etc
-  for (const char of data) {
-    const code = char.codePointAt(0) as number;
-    if (code >= 0x80) data += `&#${code};`;
-    else data += char;
-  }
   const bytes = data.split("").map((char) => char.charCodeAt(0));
   return Buffer.from(bytes);
 }
@@ -265,12 +280,20 @@ export function encodeTXTRecord(data: RDataType): Buffer {
  *   - minimum: the minimum TTL
  * @returns The encoded SOA record as a Buffer.
  */
-export function encodeSOARecord(data: RDataType): Buffer {
+export function encodeSOARecord(data: RDataType, nextOffset: number): Buffer {
   data = data as SOA_RECORD;
   const bufferArray: number[] = [];
 
-  bufferArray.push(...encodeDomainName(data.mname));
-  bufferArray.push(...encodeDomainName(data.rname));
+  bufferArray.push(
+    ...encodeDomainName(data.mname, this.dnsObject?.encodedLabels, nextOffset)
+  );
+  bufferArray.push(
+    ...encodeDomainName(
+      data.rname,
+      this.dnsObject?.encodedLabels,
+      nextOffset + bufferArray.length
+    )
+  );
 
   bufferArray.push((data.serial >>> 24) & 0xff);
   bufferArray.push((data.serial >>> 16) & 0xff);
@@ -314,76 +337,151 @@ export const typeMap: {
      * @param rdlength The length of the rdata field.
      * @returns The decoded record data.
      */
-    decodeFn: (buffer: Buffer, offset: number, rdlength: number) => RDataType;
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType;
     /**
      * Encodes a DNS record of the specified type into a Buffer.
      *
      * @param data The record data to encode.
+     * @param nextOffset The next offset to start encoding from.
      * @returns The encoded record data as a Buffer.
      */
-    encodeFn: (data: RDataType) => Buffer;
+    encodeFn(data: RDataType, nextOffset: number): Buffer;
   };
 } = {
-  [RecordType.A]: { decodeFn: decodeARecord, encodeFn: encodeArecord },
-  [RecordType.AAAA]: { decodeFn: decodeAAAARecord, encodeFn: encodeAAAARecord },
+  [RecordType.A]: {
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return decodeARecord(buffer, offset, rdlength);
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return encodeArecord.apply(this, [data, nextOffset]);
+    },
+  },
+  [RecordType.AAAA]: {
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return decodeAAAARecord(buffer, offset, rdlength);
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return encodeAAAARecord.apply(this, [data, nextOffset]);
+    },
+  },
   [RecordType.NS]: {
-    decodeFn: decodeNSRecord,
-    encodeFn: encodeNSRecord,
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return decodeNSRecord(buffer, offset, rdlength);
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return encodeNSRecord.apply(this, [data, nextOffset]);
+    },
   },
   [RecordType.MD]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.MF]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.CNAME]: {
-    decodeFn: decodeCNAMERecord,
-    encodeFn: encodeCNAMERecord,
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return decodeCNAMERecord(buffer, offset, rdlength);
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return encodeCNAMERecord.apply(this, [data, nextOffset]);
+    },
   },
   [RecordType.SOA]: {
-    decodeFn: decodeSOARecord,
-    encodeFn: encodeSOARecord,
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return decodeSOARecord(buffer, offset, rdlength);
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return encodeSOARecord.apply(this, [data, nextOffset]);
+    },
   },
   [RecordType.MB]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.MG]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.MR]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.NULL]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.WKS]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.PTR]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.HINFO]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.MINFO]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.MX]: {
-    decodeFn: (buffer: Buffer): RDataType => "Method not implemented",
-    encodeFn: (data: RDataType): Buffer => Buffer.from([0]),
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return "Method not implemented";
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return Buffer.from([0]);
+    },
   },
   [RecordType.TXT]: {
-    decodeFn: decodeTXTRecord,
-    encodeFn: encodeTXTRecord,
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
+      return decodeTXTRecord(buffer, offset, rdlength);
+    },
+    encodeFn(data: RDataType, nextOffset: number): Buffer {
+      return encodeTXTRecord.apply(this, [data, nextOffset]);
+    },
   },
 };

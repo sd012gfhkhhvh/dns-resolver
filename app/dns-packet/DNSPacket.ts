@@ -1,17 +1,14 @@
 import { BaseDNSComponent } from "./BaseDNSComponent";
 import { DNSHeader } from "./DNSHeader";
 import { DNSQuestion } from "./DNSQuestion";
-import { DNSAnswer } from "./DNSAnswer";
 import {
-  QR_FLAG,
-  RecordClass,
-  RecordType,
   type DNSAnswerType,
   type DNSHeaderType,
   type DNSPacketType,
   type DNSQuestionType,
+  type ENCODED_LABELS,
 } from "../types";
-import { decodeRecord } from "../utils";
+import { decodeRecords, encodeRecords } from "../utils";
 
 export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
   header: DNSHeaderType;
@@ -19,6 +16,7 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
   answers: DNSAnswerType[];
   authorities: DNSAnswerType[];
   additionals: DNSAnswerType[];
+  encodedLabels: ENCODED_LABELS;
 
   /**
    * Constructs a DNSPacket with the given data.
@@ -41,6 +39,7 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
     this.answers = data.answers || [];
     this.authorities = data.authorities || [];
     this.additionals = data.additionals || [];
+    this.encodedLabels = {};
   }
 
   /**
@@ -49,12 +48,36 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
    * @returns The encoded DNS packet as a Buffer.
    */
   encode(): Buffer {
+    const encodedHeader = DNSHeader.encodeRaw(this.header);
+
+    let encodedQuestions = Buffer.alloc(0);
+    let qOffset = encodedHeader.length;
+
+    // Encode questions
+    for (const question of this.questions) {
+      const encodedQuestion = DNSQuestion.encodeRaw(question, qOffset, this);
+      encodedQuestions = Buffer.concat([encodedQuestions, encodedQuestion]);
+      qOffset += encodedQuestion.length;
+    }
+
+    // Encode answers
+    const { encodedRecords: encodedAnswers, nextOffset: ansOffset } =
+      encodeRecords.apply(this, [this.answers, qOffset]);
+
+    // Encode authorities
+    const { encodedRecords: encodedAuthorities, nextOffset: auOffset } =
+      encodeRecords.apply(this, [this.authorities, ansOffset]);
+
+    // Encode additionals
+    const { encodedRecords: encodedAdditionals, nextOffset: addOffset } =
+      encodeRecords.apply(this, [this.additionals, auOffset]);
+
     return Buffer.concat([
-      DNSHeader.encodeRaw(this.header),
-      ...this.questions.map((question) => DNSQuestion.encodeRaw(question)),
-      ...this.answers.map((answer) => DNSAnswer.encodeRaw(answer)),
-      ...this.authorities.map((authority) => DNSAnswer.encodeRaw(authority)),
-      ...this.additionals.map((additional) => DNSAnswer.encodeRaw(additional)),
+      encodedHeader,
+      encodedQuestions,
+      encodedAnswers,
+      encodedAuthorities,
+      encodedAdditionals,
     ]);
   }
 
@@ -129,7 +152,7 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
     const {
       decodedRecords: decodedAnswers,
       nextOffset: ansOffset,
-    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecord(
+    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
       buffer,
       qOffset,
       answerCOUNT
@@ -139,7 +162,7 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
     const {
       decodedRecords: decodedAuthorities,
       nextOffset: auOffset,
-    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecord(
+    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
       buffer,
       ansOffset,
       authorityCOUNT
@@ -149,7 +172,7 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
     const {
       decodedRecords: decodedAdditionals,
       nextOffset: addOffset,
-    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecord(
+    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
       buffer,
       auOffset,
       additionalCOUNT
@@ -166,76 +189,52 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
 }
 
 // Example usage
-const dnsPacketRaw = {
-  header: {
-    id: 1234,
-    qr: QR_FLAG.RESPONSE,
-    opcode: 0,
-    aa: 0,
-    tc: 0,
-    rd: 1,
-    ra: 0,
-    z: 0,
-    rcode: 0,
-    qdcount: 2,
-    ancount: 2,
-    nscount: 1,
-    arcount: 1,
-  },
-  questions: [
-    {
-      name: "google.com",
-      type: RecordType.A,
-      class: RecordClass.IN,
-    },
-    {
-      name: "mail.google.com",
-      type: RecordType.A,
-      class: RecordClass.IN,
-    },
-  ],
-  answers: [
-    {
-      name: "google.com",
-      type: RecordType.A,
-      class: RecordClass.IN,
-      ttl: 3600,
-      rdlength: 4,
-      rdata: "1.2.3.4",
-    },
-    {
-      name: "mail.google.com",
-      type: RecordType.A,
-      class: RecordClass.IN,
-      ttl: 3600,
-      rdlength: 4,
-      rdata: "2.2.3.4",
-    },
-  ],
-  authorities: [
-    {
-      name: "facebook.com",
-      type: RecordType.CNAME,
-      class: RecordClass.IN,
-      ttl: 3600,
-      rdlength: 4,
-      rdata: "3.2.3.4",
-    },
-  ],
-  additionals: [
-    {
-      name: "yahoo.com",
-      type: RecordType.CNAME,
-      class: RecordClass.IN,
-      ttl: 3600,
-      rdlength: 4,
-      rdata: "4.2.3.4",
-    },
-  ],
-};
+// const dnsPacketRaw = {
+//   header: {
+//     id: 1234,
+//     qr: QR_FLAG.RESPONSE,
+//     opcode: 0,
+//     aa: 0,
+//     tc: 0,
+//     rd: 1,
+//     ra: 0,
+//     z: 0,
+//     rcode: 0,
+//     qdcount: 1,
+//     ancount: 2,
+//     nscount: 0,
+//     arcount: 0,
+//   },
+//   questions: [
+//     {
+//       name: "google.com",
+//       type: RecordType.A,
+//       class: RecordClass.IN,
+//     },
+//   ],
+//   answers: [
+//     {
+//       name: "ns1.google.com",
+//       type: RecordType.A,
+//       class: RecordClass.IN,
+//       ttl: 3600,
+//       rdlength: 4,
+//       rdata: "1.2.3.4",
+//     },
+//     {
+//       name: "ns2.google.com",
+//       type: RecordType.A,
+//       class: RecordClass.IN,
+//       ttl: 3600,
+//       rdlength: 4,
+//       rdata: "1.2.3.4",
+//     },
+//   ],
+// };
 
 // const encodedPacket = DNSPacket.encodeRaw(dnsPacketRaw);
 // console.log("endcoded packet: ", encodedPacket);
+// console.log("encoded packet length: ", encodedPacket.length);
 
 // const decodedPacket = DNSPacket.decode(encodedPacket);
 // console.log("decoded packet: ", decodedPacket.toObject());

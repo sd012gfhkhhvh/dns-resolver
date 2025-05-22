@@ -1,8 +1,16 @@
+import type { DNSPacket } from "./dns-packet/DNSPacket";
+
+/**
+ * The possible query/response flags in a DNS header.
+ */
 export enum QR_FLAG {
   QUERY = 0,
   RESPONSE = 1,
 }
 
+/**
+ * The possible opcodes in a DNS header.
+ */
 export enum OpCode {
   /**
    * Standard query, response to query.
@@ -18,6 +26,9 @@ export enum OpCode {
   SERVER_STATUS = 2,
 }
 
+/**
+ * The possible response codes in a DNS header.
+ */
 export enum ResponseCode {
   /**
    * No error condition.
@@ -44,6 +55,10 @@ export enum ResponseCode {
    */
   REFUSED = 5,
 }
+
+/**
+ * The structure of a DNS header.
+ */
 export interface DNSHeaderType {
   /**
    * A 16 bit identifier assigned by the program that generates any kind of query.
@@ -128,6 +143,16 @@ export interface DNSQuestionType {
    * The class of the resource record.
    */
   class?: RecordClass;
+
+  /**
+   * The DNS packet object that contains this resource record.
+   */
+  dnsObject?: DNSPacket;
+
+  /**
+   * The offset to start encoding from.
+   */
+  nextOffset?: number;
 }
 
 /**
@@ -162,10 +187,26 @@ export interface DNSAnswerType {
    * The data for the resource record.
    */
   rdata?: RDataType;
+
+  /**
+   * The DNS packet object that contains this resource record.
+   */
+  dnsObject?: DNSPacket;
+
+  /**
+   * The offset to start encoding from.
+   */
+  nextOffset?: number;
 }
 
+/**
+ * The possible types of resource records.
+ */
 export type RDataType = string | SOA_RECORD; // TODO: add more types for different record types
 
+/**
+ * The structure of a DNS SOA record.
+ */
 export type SOA_RECORD = {
   mname: string;
   rname: string;
@@ -324,3 +365,10 @@ export interface DNSPacketType {
    */
   additionals: DNSAnswerType[];
 }
+
+/**
+ * An object that maps labels to their encoded offsets in a DNS buffer.
+ */
+export type ENCODED_LABELS = {
+  [label: string]: number;
+};

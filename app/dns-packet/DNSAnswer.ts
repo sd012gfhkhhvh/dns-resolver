@@ -6,6 +6,7 @@ import {
 } from "../types";
 import { decodeDomainName, encodeDomainName } from "../utils";
 import { BaseDNSComponent } from "./BaseDNSComponent";
+import type { DNSPacket } from "./DNSPacket";
 import { decodeRecordData, encodeRecordData } from "./rData";
 
 /**
@@ -22,6 +23,8 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
   ttl: number;
   rdlength: number;
   rdata: RDataType;
+  dnsObject?: DNSPacket;
+  nextOffset?: number;
 
   constructor(data: Partial<DNSAnswerType> = {}) {
     super();
@@ -53,9 +56,21 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
 
   encode(): Buffer {
     // Encode domain name to DNS format
-    const nameBuffer = encodeDomainName(this.name);
+    const nameBuffer = encodeDomainName(
+      this.name,
+      this.dnsObject?.encodedLabels,
+      this.nextOffset
+    );
 
-    const rData: Buffer = encodeRecordData(this.rdata, this.type);
+    const rDataOffset = this.nextOffset
+      ? this.nextOffset + nameBuffer.length + 10
+      : nameBuffer.length + 10;
+
+    const rData: Buffer = encodeRecordData.apply(this, [
+      this.rdata,
+      this.type,
+      rDataOffset,
+    ]);
 
     let calculatedRdlength = rData.length;
     // based on the presence of compression the rdlength can be different
@@ -85,11 +100,20 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
   /**
    * Encodes a DNS answer from a raw object into a Buffer.
    *
-   * @param data - The raw DNS answer object.
+   * @param {DNSAnswerType} data - The raw DNS answer object.
+   * @param {number} nextOffset - The offset to start encoding from.
+   * @param {DNSPacket} thisObject - The top-level DNSPacket object.
    * @returns The encoded DNS answer as a Buffer.
    */
-  static encodeRaw(data: DNSAnswerType): Buffer {
-    return new DNSAnswer(data).encode();
+  static encodeRaw(
+    data: DNSAnswerType,
+    nextOffset: number,
+    thisObject: DNSPacket
+  ): Buffer {
+    const dnsAnswer = new DNSAnswer(data);
+    dnsAnswer.nextOffset = nextOffset;
+    dnsAnswer.dnsObject = thisObject; // Attach the top-level DNSPacket object
+    return dnsAnswer.encode();
   }
 
   /**

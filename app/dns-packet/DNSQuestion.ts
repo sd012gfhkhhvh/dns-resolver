@@ -1,6 +1,12 @@
-import { RecordClass, RecordType, type DNSQuestionType } from "../types";
+import {
+  RecordClass,
+  RecordType,
+  type DNSQuestionType,
+  type ENCODED_LABELS,
+} from "../types";
 import { encodeDomainName, decodeDomainName } from "../utils";
 import { BaseDNSComponent } from "./BaseDNSComponent";
+import type { DNSPacket } from "./DNSPacket";
 
 /**
  * Represents a DNS question.
@@ -12,6 +18,8 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
   name: string;
   type: RecordType;
   class: RecordClass;
+  dnsObject?: DNSPacket;
+  nextOffset?: number;
 
   /**
    * Constructs a DNSQuestion with the given data.
@@ -37,7 +45,11 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    */
   encode(): Buffer {
     // Encode domain name to DNS format
-    const nameBuffer = encodeDomainName(this.name);
+    const nameBuffer = encodeDomainName(
+      this.name,
+      this.dnsObject?.encodedLabels,
+      this.nextOffset
+    );
     const bufferSize = nameBuffer.length + 4; // 2 bytes for type, 2 bytes for class
     const buffer = Buffer.alloc(bufferSize);
 
@@ -52,13 +64,22 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
   }
 
   /**
-   * A static method to encode a DNS question from a raw object.
+   * Encodes a DNS question from a raw object into a Buffer.
    *
    * @param {DNSQuestionType} data - The raw DNS question object.
-   * @returns {Buffer} The encoded DNS question.
+   * @param {number} nextOffset - The offset to start encoding from.
+   * @param {DNSPacket} thisObject - The top-level DNSPacket object.
+   * @returns The encoded DNS question as a Buffer.
    */
-  static encodeRaw(data: DNSQuestionType): Buffer {
-    return new DNSQuestion(data).encode();
+  static encodeRaw(
+    data: DNSQuestionType,
+    nextOffset: number,
+    thisObject: DNSPacket
+  ): Buffer {
+    const dnsQuestion = new DNSQuestion(data);
+    dnsQuestion.nextOffset = nextOffset;
+    dnsQuestion.dnsObject = thisObject; // Attach the top-level DNSPacket object
+    return dnsQuestion.encode();
   }
 
   /**

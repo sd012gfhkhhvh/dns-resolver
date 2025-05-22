@@ -1,23 +1,73 @@
 import { DNSAnswer } from "./dns-packet/DNSAnswer";
-import { RecordType, RecordTypeString, type DNSAnswerType } from "./types";
+import {
+  RecordType,
+  RecordTypeString,
+  type DNSAnswerType,
+  type ENCODED_LABELS,
+} from "./types";
 
 /**
- * Encodes a domain name into the DNS wire format.
+ * Encodes a domain name into the DNS wire format with message compression.
  * The DNS wire format domain name is a sequence of labels, where each label is a
- * length byte followed by the label bytes. The last label is a 0 byte.
+ * length byte followed by the label bytes. The last label is a 0 byte or a pointer.
+ * Message compression is utilized to eliminate repetition of domain names by using pointers.
+ * A domain name in a message can be represented as either:
+ *  - a sequence of labels ending in a zero octet
+ *  - a pointer
+ *  - a sequence of labels ending with a pointer
  *
  * @example
  * encodeDomainName("example.com") => <Buffer 07 65 78 61 6d 70 6c 65 03 63 6f 6d 00>
  * @param domainName - The domain name to encode
- * @returns The encoded domain name
+ * @param encodedLabels - A map of already encoded labels to their offsets for compression.
+ * @param nextOffset - The current position in the message for calculating offsets.
+ * @returns The encoded domain name as a Buffer.
  */
-export function encodeDomainName(domainName: string): Buffer {
-  const labels = domainName.split(".");
-  const bytes = labels.flatMap((label) => [
-    label.length,
-    ...Buffer.from(label),
-  ]);
-  return Buffer.from([...bytes, 0]);
+export function encodeDomainName(
+  domainName: string,
+  encodedLabels?: ENCODED_LABELS,
+  nextOffset?: number
+): Buffer {
+  let result = Buffer.alloc(0);
+  let index = -1;
+  // check for compression possibility
+  if (encodedLabels) {
+    console.log("encodedLabels: ", encodedLabels);
+    // check if the entire domain name is already encoded
+    if (domainName in encodedLabels) {
+      index = 0;
+      result = encodePointer(encodedLabels[domainName]);
+    } else {
+      // check if any part of the domain name is already encoded
+      for (let label in encodedLabels) {
+        index = domainName.indexOf(label); // return the index of the first match
+        if (index != -1) {
+          result = encodePointer(encodedLabels[label]); // compress into a pointer
+          break;
+        }
+      }
+    }
+  }
+  // if compression is not possible or partial compression is doen
+  if (index === -1 || index > 0) {
+    const remainingLabelSequence =
+      index > 0 ? domainName.slice(0, index) : domainName;
+    const labels = remainingLabelSequence.split(".").filter((el) => el != ""); // remove any empty labels like "a." => ["a", ""]
+    const bytes = labels.flatMap((label) => {
+      return [label.length, ...Buffer.from(label)];
+    });
+    // concatenate the newly encoded label sequence with the pointer if present
+    result =
+      result.length > 0
+        ? Buffer.from([...bytes, ...result]) // a sequence of labels ending with a pointer | a pointer
+        : Buffer.from([...bytes, 0]); //  a sequence of labels ending in a zero octet
+
+    // store the new label sequence into the encodedLabels object
+    if (encodedLabels && nextOffset) {
+      encodedLabels[domainName] = nextOffset;
+    }
+  }
+  return result;
 }
 
 // Alternate method using String.fromCharCode()
@@ -32,16 +82,12 @@ export function encodeDomainNameAlt(domainName: string): Buffer {
 }
 
 /**
- * Decodes a DNS domain name from the DNS wire format.
+ * Decodes a domain name from a Buffer.
  *
- * The compression scheme allows a domain name in a message to be represented as either:
- *     - a sequence of labels ending in a zero octet
- *     - a pointer
- *     - a sequence of labels ending with a pointer
- *
- * @param buffer - The Buffer containing the DNS packet.
+ * @param buffer - The Buffer containing the domain name to decode.
  * @param offset - The offset into the Buffer where the domain name starts.
- * @returns The decoded domain name as a string.
+ * @returns An object containing the decoded domain name as a string and
+ * the offset immediately after the decoded domain name.
  */
 export function decodeDomainName(
   buffer: Buffer,
@@ -52,18 +98,21 @@ export function decodeDomainName(
 
   while (startIndex < buffer.length) {
     if (isPointer(buffer, startIndex)) {
+      // If the first two bits of the first octet are 1, then this is a pointer
       const pointerOffset = decodePointer(
         buffer.subarray(startIndex, startIndex + 2)
       );
+      // decode the pointer and add the corresponding domain name to the labels array
       labels.push(decodeDomainName(buffer, pointerOffset).domainName);
       startIndex += 2;
-      break;
+      break; // exit the loop if a pointer is encountered
     } else {
       const labelLength = buffer[startIndex];
       if (labelLength === 0) {
         startIndex += 1;
-        break;
-      } // End the loop if the label length is 0, i.e null byte indicates the end of the domain name
+        break; // exit the loop if the label length is 0, i.e null byte indicates the end of the domain name
+      }
+      // decode the label and add it to the labels array
       labels.push(
         buffer
           .subarray(startIndex + 1, startIndex + 1 + labelLength)
@@ -107,8 +156,7 @@ export function encodePointer(offset: number): Buffer {
 
   // Convert to two-octet sequence
   const pointerOctets = Buffer.alloc(2);
-  pointerOctets[0] = parseInt(pointerBinary.slice(0, 8), 2);
-  pointerOctets[1] = parseInt(pointerBinary.slice(8), 2);
+  pointerOctets.writeUInt16BE(parseInt(pointerBinary, 2), 0);
 
   return pointerOctets;
 }
@@ -142,7 +190,7 @@ export function decodePointer(pointerBuffer: Buffer): number {
  * @param recordCount The number of records to decode.
  * @returns An object containing an array of decoded DNSAnswer objects and the offset immediately after the decoded records.
  */
-export function decodeRecord(
+export function decodeRecords(
   buffer: Buffer,
   recordOffset: number = 0,
   recordCount: number = 0
@@ -160,6 +208,34 @@ export function decodeRecord(
     count--;
   }
   return { decodedRecords, nextOffset: offset };
+}
+
+/**
+ * Encodes multiple DNS records from an array of raw objects into a Buffer.
+ * @param records The array of raw DNSAnswer objects to encode.
+ * @param nextOffset The offset into the Buffer where the records should be encoded.
+ * @returns An object containing the encoded Buffer and the offset immediately after the encoded records.
+ */
+export function encodeRecords(
+  records: DNSAnswerType[],
+  nextOffset: number
+): {
+  encodedRecords: Buffer;
+  nextOffset: number;
+} {
+  let encodedRecords = Buffer.alloc(0);
+  let offset = nextOffset;
+
+  for (const record of records) {
+    const encodedRecord = DNSAnswer.encodeRaw(record, offset, this);
+    encodedRecords = Buffer.concat([encodedRecords, encodedRecord]);
+    offset += encodedRecord.length;
+  }
+
+  return {
+    encodedRecords,
+    nextOffset: offset,
+  };
 }
 
 /**
@@ -233,7 +309,10 @@ export function getAnswerBufferChunks(
  * @returns A boolean indicating whether the domain name is valid.
  */
 
-export function isValidDomain(domain: string) {
+export function isValidDomain(domain: string): boolean {
+  // empty string
+  if (domain === "" || domain === undefined || domain === null) return false;
+
   // Regular expression pattern for domain name validation
   const domainRegex = /^[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/;
 
@@ -255,6 +334,8 @@ export function isValidDomain(domain: string) {
  * @returns A boolean indicating whether the string is a valid DNS record type.
  */
 export function isValidType(type: string) {
+  // empty string
+  if (type === "" || type === undefined || type === null) return false;
   return RecordType[type.toUpperCase() as RecordTypeString] !== undefined;
 }
 

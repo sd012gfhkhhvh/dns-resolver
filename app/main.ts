@@ -38,6 +38,8 @@ udpSocket.on("message", async (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
     // resolve query
     const dnsResponseObject = await recursiveResolver(decodedDnsQueryObject);
+    console.log("resolved packet : ", dnsResponseObject);
+    
     let responseBuffer: Buffer;
     // if response is not found
     if (!dnsResponseObject) {
@@ -59,7 +61,6 @@ udpSocket.on("message", async (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       responseBuffer = DNSPacket.encodeRaw(dnsResponseObject);
       console.log("response packet buffer: ", responseBuffer);
       console.log("response packet length: ", responseBuffer.length);
-      console.log("response packet Decoded : ", dnsResponseObject);
     }
     // send data
     udpSocket.send(responseBuffer, remoteAddr.port, remoteAddr.address);
