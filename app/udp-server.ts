@@ -1,7 +1,7 @@
 import * as dgram from "dgram";
 import dnsPacket from "dns-packet"; // 3rd party module to decode and encode DNS packets
-import { DNSPacket } from "./dns-packet/DNSPacket";
-import { recursiveResolver } from "./recursive-resolver";
+import { DNSPacket } from "./dns/DNSPacket";
+import { recursiveResolver } from "./resolver/recursive-resolver";
 import { QR_FLAG, ResponseCode } from "./types";
 
 //socket connection

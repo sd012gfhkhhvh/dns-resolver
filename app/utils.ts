@@ -1,4 +1,4 @@
-import { DNSAnswer } from "./dns-packet/DNSAnswer";
+import { DNSAnswer } from "./dns/DNSAnswer";
 import {
   RecordType,
   RecordTypeString,

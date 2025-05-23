@@ -5,29 +5,61 @@ import {
   type DNSAnswerType,
   type DNSPacketType,
   type DNSQuestionType,
-} from "./types";
-import { rootNameServers } from "./root-name-server";
+} from "../types";
+import { rootNameServers } from "../root-name-server";
 import { forwardResolver } from "./forward-resolver";
-import { DNSPacket } from "./dns-packet/DNSPacket";
-import { isValidDomain, pickRandomFromArray } from "./utils";
+import { DNSPacket } from "../dns/DNSPacket";
+import { isValidDomain, pickRandomFromArray } from "../utils";
+import { DNSCache } from "../cache/dns-cache";
 
 export async function recursiveResolver(
   requestObjects: DNSPacketType
 ): Promise<DNSPacketType> {
   try {
     // if there are multiple questions then resolve them one by one
-    const dnsQueryResponseObjects: Promise<DNSPacketType>[] = [];
-    requestObjects.questions.forEach((question) => {
-      // build dns packet with one question
-      const dnsQuery = new DNSPacket({
-        header: { ...requestObjects.header, qdcount: 1 },
-        questions: [question],
-      });
+    const dnsQueryResponseObjects: DNSPacketType[] = [];
+    const cache = new DNSCache();
 
-      dnsQueryResponseObjects.push(recursiveLookup(dnsQuery.toObject()));
-    });
-    const responses = await Promise.all(dnsQueryResponseObjects);
-    return responses.find(
+    for (const question of requestObjects.questions) {
+      // check if the answer is in the cache
+      const cachedAnswers = await cache.getDNSAnswer(question);
+
+      // if the answer is in the cache build the response packet
+      if (cachedAnswers) {
+        console.log("cache hit");
+        const responseObject: DNSPacketType = {
+          header: {
+            ...requestObjects.header,
+            qr: QR_FLAG.RESPONSE,
+            ra: 1,
+            ancount: cachedAnswers.length,
+          },
+          questions: [question],
+          answers: cachedAnswers,
+          authorities: [],
+          additionals: [],
+        };
+        dnsQueryResponseObjects.push(responseObject);
+      } else {
+        console.log("cache miss");
+        // build dns packet with one question
+        const dnsQuery = new DNSPacket({
+          header: { ...requestObjects.header, qdcount: 1 },
+          questions: [question],
+        }).toObject();
+
+        const result = await recursiveLookup(dnsQuery);
+        if (result) {
+          dnsQueryResponseObjects.push(result);
+          const setResult = await cache.setDNSAnswer(question, result.answers);
+          if (setResult == "OK") {
+            console.log("set in cache");
+          }
+        }
+      }
+    }
+
+    return dnsQueryResponseObjects.find(
       (response) => response != null && response != undefined
     ) as DNSPacketType;
   } catch (e) {

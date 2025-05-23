@@ -9,7 +9,7 @@ import {
   type DNSPacketType,
 } from "./types";
 import { forwardResolver } from "./forward-resolver";
-import { DNSPacket } from "./dns-packet/DNSPacket";
+import { DNSPacket } from "./dns/DNSPacket";
 
 const app = express();
 

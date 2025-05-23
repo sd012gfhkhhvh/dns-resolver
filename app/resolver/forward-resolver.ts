@@ -1,6 +1,6 @@
 import dgram from "dgram";
-import { DNSPacket } from "./dns-packet/DNSPacket";
-import type { DNSPacketType } from "./types";
+import { DNSPacket } from "../dns/DNSPacket";
+import type { DNSPacketType } from "../types";
 
 export async function forwardResolver(
   queryPacket: Buffer,

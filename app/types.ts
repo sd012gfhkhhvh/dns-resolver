@@ -1,4 +1,4 @@
-import type { DNSPacket } from "./dns-packet/DNSPacket";
+import type { DNSPacket } from "./dns/DNSPacket";
 
 /**
  * The possible query/response flags in a DNS header.
