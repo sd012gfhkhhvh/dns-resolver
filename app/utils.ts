@@ -32,7 +32,8 @@ export function encodeDomainName(
   let index = -1;
   // check for compression possibility
   if (encodedLabels) {
-    console.log("encodedLabels: ", encodedLabels);
+    // console.log("encodedLabels: ", encodedLabels, "\n");
+
     // check if the entire domain name is already encoded
     if (domainName in encodedLabels) {
       index = 0;
@@ -48,7 +49,7 @@ export function encodeDomainName(
       }
     }
   }
-  // if compression is not possible or partial compression is doen
+  // if compression is not possible or partial compression has already done in the previous step
   if (index === -1 || index > 0) {
     const remainingLabelSequence =
       index > 0 ? domainName.slice(0, index) : domainName;
@@ -84,6 +85,18 @@ export function encodeDomainNameAlt(domainName: string): Buffer {
 /**
  * Decodes a domain name from a Buffer.
  *
+ * This function handles the message compression scheme described in RFC 1035, Section 4.1.4.
+ * In order to reduce the size of messages, the domain system utilizes a compression scheme which
+ * eliminates the repetition of domain names in a message.  In this scheme, an entire domain name or
+ * a list of labels at the end of a domain name is replaced with a pointer to a prior occurrence of
+ * the same name.
+ * 
+ * The pointer takes the form of a two octet sequence:
+
+ * -  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ * -  | 1  1|                OFFSET                   |
+ * -  +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+ *
  * @param buffer - The Buffer containing the domain name to decode.
  * @param offset - The offset into the Buffer where the domain name starts.
  * @returns An object containing the decoded domain name as a string and
@@ -97,8 +110,8 @@ export function decodeDomainName(
   const labels: string[] = [];
 
   while (startIndex < buffer.length) {
+    // If the first two bits of the first octet are 1, then this is a pointer
     if (isPointer(buffer, startIndex)) {
-      // If the first two bits of the first octet are 1, then this is a pointer
       const pointerOffset = decodePointer(
         buffer.subarray(startIndex, startIndex + 2)
       );
@@ -131,7 +144,7 @@ export function decodeDomainName(
 /**
  * Checks if the given buffer at the given offset is a DNS pointer.
  * A DNS pointer is a 2-byte sequence that starts with two 1 bits, since the label must begin with two zero bits because
- *  labels are restricted to 63 octets or less.
+ * labels are restricted to 63 octets or less.
  * @param buffer The buffer to check.
  * @param offset The offset into the buffer to check.
  * @returns True if the buffer is a DNS pointer, false otherwise.

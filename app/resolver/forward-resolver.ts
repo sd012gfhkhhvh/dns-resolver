@@ -7,24 +7,28 @@ export async function forwardResolver(
   forwardPort: number,
   forwardHost: string
 ): Promise<DNSPacketType> {
-  const udpSocket = dgram.createSocket("udp4");
+  console.log(
+    `\x1b[32mForwarding to ${forwardHost}:${forwardPort} via UDP socket...\n\x1b[0m`
+  );
+  const udpSocket = dgram.createSocket({ type: "udp4" });
 
   const answer = await new Promise<DNSPacketType>((resolve, reject) => {
     udpSocket.send(queryPacket, forwardPort, forwardHost);
 
     udpSocket.on("message", (msg: Buffer) => {
       try {
-        console.log("response: ", msg);
-        console.log("response length: ", msg.length);
+        console.log(`forwarded response:`, msg, "\n");
+        console.log("forwarded response length: ", msg.length, "\n");
 
         const parsedResponse: DNSPacketType = DNSPacket.decode(msg).toObject();
-        console.log("parsed response: ", parsedResponse);
+        // console.log("parsed forwarded response: ", parsedResponse);
 
-        udpSocket.close();
         resolve(parsedResponse);
       } catch (error) {
-        console.error("Error in forwardResolver:", error);
+        console.error("Error in forwardResolver:", error, "\n");
         reject(error);
+      } finally {
+        udpSocket.close();
       }
     });
 
