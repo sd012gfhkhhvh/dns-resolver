@@ -2,8 +2,15 @@
   "name": "@codecrafters/dns-server",
   "description": "Build your own DNS server challenge, from CodeCrafters",
   "type": "module",
+  "target": "bun",
   "scripts": {
-    "dev": "bun run app/udp-server.ts"
+    "dev": "bun run --watch app/udp-server.ts & bun run --watch app/forwarding-server.ts",
+    "dev:udp": "bun run --watch app/udp-server.ts",
+    "build": "bun build --target=node app/udp-server.ts app/forwarding-server.ts --outdir=dist",
+    "build:udp": "bun build --target=node app/udp-server.ts --outdir=dist",
+    "start": "bash scripts/start-all.sh",
+    "start:udp": "node dist/udp-server.js",
+    "docker:compose": "docker-compose up --build --abort-on-container-exit"
   },
   "devDependencies": {
     "@types/bun": "latest",

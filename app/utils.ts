@@ -353,6 +353,21 @@ export function isValidType(type: string) {
 }
 
 /**
+ * Validates whether a given string is a valid IPv4 address.
+ *
+ * @param ip - The IPv4 address to validate.
+ * @returns A boolean indicating whether the input is a valid IPv4 address.
+ */
+export function isValidIpv4(ip: string): boolean {
+  if (!ip) return false;
+
+  const ipv4Regex =
+    /^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/;
+
+  return ipv4Regex.test(ip);
+}
+
+/**
  * Returns a random element from the given array.
  *
  * @param array - The array to pick an element from.

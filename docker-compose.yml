@@ -1,0 +1,28 @@
+version: 'v1.0'
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: dns-resolver-app:latest
+    container_name: dns-resolver-app
+    depends_on:
+      - redis
+    ports:
+      - "127.0.0.1:2053:2053/udp"  # Only expose on localhost
+      - "127.0.0.1:8080:8080/tcp"  # Only expose on localhost
+    environment:
+      - REDIS_URL=redis://redis-server:6379
+      - UDP_BIND_ADDRESS=0.0.0.0
+      - UDP_PORT=2053
+      - DOCKER_ENV=true
+    restart: unless-stopped
+
+  redis:
+    image: redis:7
+    container_name: redis-server
+    ports:
+      - "6379:6379"
+    restart: unless-stopped

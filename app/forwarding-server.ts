@@ -1,6 +1,6 @@
 import express, { type Request, type Response } from "express";
-import { string, z } from "zod";
-import { isValidDomain, isValidType } from "./utils";
+import { z } from "zod";
+import { isValidDomain, isValidIpv4, isValidType } from "./utils";
 import {
   QR_FLAG,
   RecordClass,
@@ -8,15 +8,15 @@ import {
   RecordTypeString,
   type DNSPacketType,
 } from "./types";
-import { forwardResolver } from "./forward-resolver";
+import { forwardResolver } from "./resolver/forward-resolver";
 import { DNSPacket } from "./dns/DNSPacket";
 
 const app = express();
 
 const HTTP_PORT = 8080;
-const FORWARD_SERVER_PORT = 53;
-// const FORWARD_SERVER_HOST = "198.41.0.4"; // a.root-servers.net
-const FORWARD_SERVER_HOST = "8.8.8.8"; // a.root-servers.net
+
+const FORWARD_SERVER_PORT = 2053; // our own UDP server port
+const FORWARD_SERVER_HOST = "127.0.0.1"; // our own UDP server
 
 const querySchema = z.object({
   domain: z.string().refine(isValidDomain, {
@@ -25,6 +25,12 @@ const querySchema = z.object({
   type: z.string().refine(isValidType, {
     message: "Invalid type!",
   }),
+  host: z
+    .string()
+    .refine(isValidIpv4, {
+      message: "Invalid host name!",
+    })
+    .optional(),
 });
 
 type QueryType = z.infer<typeof querySchema>;
@@ -44,7 +50,7 @@ app.get("/resolve", async (req: Request, res: Response) => {
       return;
     }
 
-    const { domain, type } = req.query as QueryType;
+    const { domain, type, host } = req.query as QueryType;
 
     const dnsQueryObject: DNSPacketType = {
       header: {
@@ -78,8 +84,8 @@ app.get("/resolve", async (req: Request, res: Response) => {
 
     const dnsResponseObject = await forwardResolver(
       dnsQueryPacket,
-      FORWARD_SERVER_PORT,
-      FORWARD_SERVER_HOST
+      host ? 53 : FORWARD_SERVER_PORT,
+      host || FORWARD_SERVER_HOST
     );
 
     res.json(dnsResponseObject);

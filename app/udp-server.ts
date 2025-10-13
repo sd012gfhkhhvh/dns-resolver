@@ -4,10 +4,17 @@ import { DNSPacket } from "./dns/DNSPacket";
 import { recursiveResolver } from "./resolver/recursive-resolver";
 import { QR_FLAG, ResponseCode } from "./types";
 
+// Default to 0.0.0.0 in container, 127.0.0.1 for local dev
+const isDocker = process.env.DOCKER_ENV === "true" || process.env.REDIS_URL?.includes("redis-server");
+const UDP_BIND_ADDRESS = process.env.UDP_BIND_ADDRESS || (isDocker ? "0.0.0.0" : "127.0.0.1");
+const UDP_PORT = parseInt(process.env.UDP_PORT || "2053", 10);
+
+console.log(`🔧 Binding to ${UDP_BIND_ADDRESS}:${UDP_PORT} (Docker: ${isDocker})`);
+
 //socket connection
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 
-udpSocket.bind(2053, "127.0.0.1", () => {
+udpSocket.bind(UDP_PORT, UDP_BIND_ADDRESS, () => {
   console.log("bind done!\n");
 });
 

@@ -1,0 +1,33 @@
+# Ignore node_modules, build artifacts, and logs
+node_modules/
+dist/
+build/
+*.log
+
+# Ignore OS generated files
+.DS_Store
+Thumbs.db
+
+# Ignore environment files
+.env
+.env.*
+
+# Ignore Docker files
+Dockerfile*
+docker-compose*
+
+# Ignore git files
+.git
+.gitignore
+
+# Ignore test coverage
+coverage/
+*.lcov
+
+# Ignore editor/project files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+*.tmp
