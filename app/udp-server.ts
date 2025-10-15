@@ -38,7 +38,8 @@ udpSocket.on('message', async (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     console.log(
       `\x1b[32m✨ Received DNS query from ${remoteAddr.address}:${remoteAddr.port} ✨\x1b[0m\n`,
     )
-    // console.log("raw packet : ", data, "\n");
+    console.log('raw packet : ', data, '\n')
+    console.log('raw packet length: ', data.length, '\n')
 
     // decode request packet
     const decodedDnsQueryPacket = DNSPacket.decode(data)
@@ -58,7 +59,7 @@ udpSocket.on('message', async (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
     // send data
     udpSocket.send(finalResponse, 0, finalResponse.length, remoteAddr.port, remoteAddr.address)
-  } catch (e) {
+  } catch (e: any) {
     console.log(`Error sending DNS response: ${e}\n`)
   }
 })

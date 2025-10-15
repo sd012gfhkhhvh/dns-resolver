@@ -36,7 +36,7 @@ export function encodeDomainName(
       result = encodePointer(encodedLabels[domainName])
     } else {
       // check if any part of the domain name is already encoded
-      for (let label in encodedLabels) {
+      for (const label in encodedLabels) {
         index = domainName.indexOf(label) // return the index of the first match
         if (index != -1) {
           result = encodePointer(encodedLabels[label]) // compress into a pointer
@@ -139,7 +139,7 @@ export function decodeDomainName(
  * @returns True if the buffer is a DNS pointer, false otherwise.
  */
 export function isPointer(buffer: Buffer, offset: number = 0) {
-  let firstByte = buffer[offset].toString(2).padStart(8, '0')
+  const firstByte = buffer[offset].toString(2).padStart(8, '0')
   return firstByte.startsWith('11') // if the first two bits are '1' then it is a pointer
 }
 
@@ -257,9 +257,9 @@ export function getQuestionBufferChunks(
   let startIndex = offset
   const questionBufferChunks: Buffer[] = []
   while (questionCOUNT > 0 && startIndex < buffer.length) {
-    let remainingBuffer = buffer.subarray(startIndex, buffer.length)
-    let nullIndex = remainingBuffer.findIndex((byte) => byte === 0x00) // Find the index of the first null byte , i.e the end of the domain name
-    let endIndex = nullIndex + 4 // 4 bytes for type and class
+    const remainingBuffer = buffer.subarray(startIndex, buffer.length)
+    const nullIndex = remainingBuffer.findIndex((byte) => byte === 0x00) // Find the index of the first null byte , i.e the end of the domain name
+    const endIndex = nullIndex + 4 // 4 bytes for type and class
     questionBufferChunks.push(remainingBuffer.subarray(0, endIndex + 1))
     startIndex += endIndex + 1
     questionCOUNT--
@@ -286,11 +286,11 @@ export function getAnswerBufferChunks(
   let startIndex = offset
   const answerBufferChunks: Buffer[] = []
   while (answerCOUNT > 0 && startIndex < buffer.length) {
-    let remainingBuffer = buffer.subarray(startIndex, buffer.length)
-    let nullIndex = remainingBuffer.findIndex((byte) => byte === 0x00) // Find the index of the first null byte , i.e the end of the domain name
-    let indexOfRdlength = nullIndex + 8 // 8 bytes for type, class and ttl
-    let rdlength = remainingBuffer.readUInt16BE(indexOfRdlength) // Read the length of the RD field
-    let endIndex = indexOfRdlength + rdlength
+    const remainingBuffer = buffer.subarray(startIndex, buffer.length)
+    const nullIndex = remainingBuffer.findIndex((byte) => byte === 0x00) // Find the index of the first null byte , i.e the end of the domain name
+    const indexOfRdlength = nullIndex + 8 // 8 bytes for type, class and ttl
+    const rdlength = remainingBuffer.readUInt16BE(indexOfRdlength) // Read the length of the RD field
+    const endIndex = indexOfRdlength + rdlength
     answerBufferChunks.push(remainingBuffer.subarray(0, endIndex + 1))
     startIndex += endIndex + 1
     answerCOUNT--
@@ -314,7 +314,7 @@ export function isValidDomain(domain: string): boolean {
   if (domain === '' || domain === undefined || domain === null) return false
 
   // Regular expression pattern for domain name validation
-  const domainRegex = /^[a-zA-Z0-9]+([\-\.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/
+  const domainRegex = /^[a-zA-Z0-9]+([-.]{1}[a-zA-Z0-9]+)*\.[a-zA-Z]{2,}$/
 
   // Check if the domain matches the pattern
   const isDomainValid = domainRegex.test(domain)

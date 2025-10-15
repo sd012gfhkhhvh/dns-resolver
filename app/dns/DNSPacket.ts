@@ -46,47 +46,50 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
    * @returns The encoded DNS packet as a Buffer.
    */
   encode(): Buffer {
-    const encodedHeader = DNSHeader.encodeRaw(this.header)
+    try {
+      const encodedHeader = DNSHeader.encodeRaw(this.header)
 
-    let encodedQuestions = Buffer.alloc(0)
-    let qOffset = encodedHeader.length
+      let encodedQuestions = Buffer.alloc(0)
+      let qOffset = encodedHeader.length
 
-    // Encode questions
-    for (const question of this.questions) {
-      const encodedQuestion = DNSQuestion.encodeRaw(question, qOffset, this)
-      // encodedQuestions = Buffer.concat([encodedQuestions, encodedQuestion]);
-      encodedQuestions = Buffer.concat([
-        new Uint8Array(encodedQuestions),
-        new Uint8Array(encodedQuestion),
+      // Encode questions
+      for (const question of this.questions) {
+        const encodedQuestion = DNSQuestion.encodeRaw(question, qOffset, this)
+        encodedQuestions = Buffer.concat([
+          new Uint8Array(encodedQuestions),
+          new Uint8Array(encodedQuestion),
+        ])
+        qOffset += encodedQuestion.length
+      }
+
+      // Encode answers
+      const { encodedRecords: encodedAnswers, nextOffset: ansOffset } = encodeRecords.apply(this, [
+        this.answers,
+        qOffset,
       ])
-      qOffset += encodedQuestion.length
+
+      // Encode authorities
+      const { encodedRecords: encodedAuthorities, nextOffset: auOffset } = encodeRecords.apply(
+        this,
+        [this.authorities, ansOffset],
+      )
+
+      // Encode additionals
+      const { encodedRecords: encodedAdditionals, nextOffset: addOffset } = encodeRecords.apply(
+        this,
+        [this.additionals, auOffset],
+      )
+
+      return Buffer.concat([
+        new Uint8Array(encodedHeader),
+        new Uint8Array(encodedQuestions),
+        new Uint8Array(encodedAnswers),
+        new Uint8Array(encodedAuthorities),
+        new Uint8Array(encodedAdditionals),
+      ])
+    } catch (error) {
+      throw new Error(`Failed to encode DNSPacket: ${(error as Error).message}`)
     }
-
-    // Encode answers
-    const { encodedRecords: encodedAnswers, nextOffset: ansOffset } = encodeRecords.apply(this, [
-      this.answers,
-      qOffset,
-    ])
-
-    // Encode authorities
-    const { encodedRecords: encodedAuthorities, nextOffset: auOffset } = encodeRecords.apply(this, [
-      this.authorities,
-      ansOffset,
-    ])
-
-    // Encode additionals
-    const { encodedRecords: encodedAdditionals, nextOffset: addOffset } = encodeRecords.apply(
-      this,
-      [this.additionals, auOffset],
-    )
-
-    return Buffer.concat([
-      new Uint8Array(encodedHeader),
-      new Uint8Array(encodedQuestions),
-      new Uint8Array(encodedAnswers),
-      new Uint8Array(encodedAuthorities),
-      new Uint8Array(encodedAdditionals),
-    ])
   }
 
   /**
@@ -96,7 +99,14 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
    * @returns The encoded DNS packet as a Buffer.
    */
   static encodeRaw(data: DNSPacketType): Buffer {
-    return new DNSPacket(data).encode()
+    try {
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data: data must be a DNSPacketType object')
+      }
+      return new DNSPacket(data).encode()
+    } catch (e) {
+      throw new Error(`Failed to encode raw DNS packet: ${(e as Error).message}`)
+    }
   }
 
   /**
@@ -122,73 +132,80 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
    * @throws {Error} If the packet length is invalid or if there is a problem decoding the packet.
    */
   static decode(buffer: Buffer, offset: number = 0): DNSPacket {
-    // Check packet length
-    if (buffer.length < 12) {
-      throw new Error('Invalid packet length')
+    try {
+      // Check packet length
+      if (buffer.length < 12) {
+        throw new Error('Invalid packet length')
+      }
+
+      // Decode header
+      const { result: decodedHeaderInstance, nextOffset: hOffset } = DNSHeader.decode(
+        buffer,
+        offset,
+      )
+
+      const decodedHeader = decodedHeaderInstance.toObject()
+
+      const questionCOUNT: number = decodedHeader.qdcount || 0
+      const answerCOUNT: number = decodedHeader.ancount || 0
+      const authorityCOUNT: number = decodedHeader.nscount || 0
+      const additionalCOUNT: number = decodedHeader.arcount || 0
+
+      if (questionCOUNT < 1) {
+        throw new Error('At least one question is required')
+      }
+
+      // Decode questions
+      let qOffset = hOffset
+      const decodedQuestions: DNSQuestionType[] = []
+      let qCount = questionCOUNT
+      while (qCount > 0 && qOffset < buffer.length) {
+        const { result: question, nextOffset } = DNSQuestion.decode(buffer, qOffset)
+        decodedQuestions.push(question.toObject())
+        qOffset = nextOffset
+        qCount--
+      }
+
+      // Decode answers
+      const {
+        decodedRecords: decodedAnswers,
+        nextOffset: ansOffset,
+      }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
+        buffer,
+        qOffset,
+        answerCOUNT,
+      )
+
+      // Decode authorities
+      const {
+        decodedRecords: decodedAuthorities,
+        nextOffset: auOffset,
+      }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
+        buffer,
+        ansOffset,
+        authorityCOUNT,
+      )
+
+      // Decode additionals
+      const {
+        decodedRecords: decodedAdditionals,
+        nextOffset: addOffset,
+      }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
+        buffer,
+        auOffset,
+        additionalCOUNT,
+      )
+
+      return new DNSPacket({
+        header: decodedHeader,
+        questions: decodedQuestions,
+        answers: decodedAnswers,
+        authorities: decodedAuthorities,
+        additionals: decodedAdditionals,
+      })
+    } catch (error) {
+      throw new Error(`Failed to decode DNSPacket: ${(error as Error).message}`)
     }
-
-    // Decode header
-    const { result: decodedHeaderInstance, nextOffset: hOffset } = DNSHeader.decode(buffer, offset)
-
-    const decodedHeader = decodedHeaderInstance.toObject()
-
-    const questionCOUNT: number = decodedHeader.qdcount || 0
-    const answerCOUNT: number = decodedHeader.ancount || 0
-    const authorityCOUNT: number = decodedHeader.nscount || 0
-    const additionalCOUNT: number = decodedHeader.arcount || 0
-
-    if (questionCOUNT < 1) {
-      throw new Error('At least one question is required')
-    }
-
-    // Decode questions
-    let qOffset = hOffset
-    const decodedQuestions: DNSQuestionType[] = []
-    let qCount = questionCOUNT
-    while (qCount > 0 && qOffset < buffer.length) {
-      const { result: question, nextOffset } = DNSQuestion.decode(buffer, qOffset)
-      decodedQuestions.push(question.toObject())
-      qOffset = nextOffset
-      qCount--
-    }
-
-    // Decode answers
-    const {
-      decodedRecords: decodedAnswers,
-      nextOffset: ansOffset,
-    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
-      buffer,
-      qOffset,
-      answerCOUNT,
-    )
-
-    // Decode authorities
-    const {
-      decodedRecords: decodedAuthorities,
-      nextOffset: auOffset,
-    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
-      buffer,
-      ansOffset,
-      authorityCOUNT,
-    )
-
-    // Decode additionals
-    const {
-      decodedRecords: decodedAdditionals,
-      nextOffset: addOffset,
-    }: { decodedRecords: DNSAnswerType[]; nextOffset: number } = decodeRecords(
-      buffer,
-      auOffset,
-      additionalCOUNT,
-    )
-
-    return new DNSPacket({
-      header: decodedHeader,
-      questions: decodedQuestions,
-      answers: decodedAnswers,
-      authorities: decodedAuthorities,
-      additionals: decodedAdditionals,
-    })
   }
 }
 

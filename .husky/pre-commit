@@ -1,0 +1,24 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running ESLint..."
+bun run lint
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Linting errors detected!"
+  echo "Run 'bun run lint:fix' or 'make lint-fix' to auto-fix, then commit again."
+  exit 1
+fi
+
+echo "🔍 Running Prettier format check..."
+bun run format:check
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Formatting issues detected!"
+  echo "Run 'bun run format' or 'make format' to fix them, then commit again."
+  exit 1
+fi
+
+echo "✅ All checks passed!"

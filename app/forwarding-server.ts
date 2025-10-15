@@ -48,7 +48,7 @@ app.get('/resolve', async (req: Request, res: Response) => {
       return
     }
 
-    const { domain, type, host } = parsedQuery.data as QueryType
+    const { domain, type, host } = parsedQuery.data
 
     const dnsQueryObject: DNSPacketType = {
       header: {

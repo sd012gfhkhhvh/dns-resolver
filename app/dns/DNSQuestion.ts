@@ -39,20 +39,24 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    * @returns The encoded DNS question as a Buffer.
    */
   encode(): Buffer {
-    // Encode domain name to DNS format
-    const nameBuffer = encodeDomainName(this.name, this.dnsObject?.encodedLabels, this.nextOffset)
-    const bufferSize = nameBuffer.length + 4 // 2 bytes for type, 2 bytes for class
-    const buffer = Buffer.alloc(bufferSize)
+    try {
+      // Encode domain name to DNS format
+      const nameBuffer = encodeDomainName(this.name, this.dnsObject?.encodedLabels, this.nextOffset)
+      const bufferSize = nameBuffer.length + 4 // 2 bytes for type, 2 bytes for class
+      const buffer = Buffer.alloc(bufferSize)
 
-    // Copy name into buffer
-    // nameBuffer.copy(buffer, 0);
-    buffer.set(nameBuffer, 0)
+      // Copy name into buffer
+      // nameBuffer.copy(buffer, 0);
+      buffer.set(nameBuffer, 0)
 
-    // Write type and class
-    buffer.writeUInt16BE(this.type, nameBuffer.length)
-    buffer.writeUInt16BE(this.class, nameBuffer.length + 2)
+      // Write type and class
+      buffer.writeUInt16BE(this.type, nameBuffer.length)
+      buffer.writeUInt16BE(this.class, nameBuffer.length + 2)
 
-    return buffer
+      return buffer
+    } catch (e) {
+      throw new Error(`Failed to encode DNS question: ${(e as Error).message}`)
+    }
   }
 
   /**
@@ -94,23 +98,27 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    */
 
   static decode(buffer: Buffer, offset: number = 0): { result: DNSQuestion; nextOffset: number } {
-    const { domainName: decodedName, nextOffset } = decodeDomainName(buffer, offset)
-    return {
-      result: new DNSQuestion({
-        name: decodedName,
-        type: buffer.readUInt16BE(nextOffset),
-        class: buffer.readUInt16BE(nextOffset + 2),
-      }),
-      nextOffset: nextOffset + 4,
+    try {
+      const { domainName: decodedName, nextOffset } = decodeDomainName(buffer, offset)
+      return {
+        result: new DNSQuestion({
+          name: decodedName,
+          type: buffer.readUInt16BE(nextOffset),
+          class: buffer.readUInt16BE(nextOffset + 2),
+        }),
+        nextOffset: nextOffset + 4,
+      }
+    } catch (e) {
+      throw new Error(`Failed to decode DNS question: ${(e as Error).message}`)
     }
   }
 }
 
-const question = new DNSQuestion({
-  name: 'google.com',
-  type: RecordType.A,
-  class: RecordClass.IN,
-})
+// const question = new DNSQuestion({
+//   name: 'google.com',
+//   type: RecordType.A,
+//   class: RecordClass.IN,
+// })
 // console.log(question.encode());
 // const { result: decodedQuestion, nextOffset: qOffset } = DNSQuestion.decode(
 //   question.encode()

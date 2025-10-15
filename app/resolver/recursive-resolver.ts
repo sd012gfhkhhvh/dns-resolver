@@ -93,18 +93,18 @@ export async function recursiveResolver(requestObject: DNSPacketType): Promise<D
  */
 export async function recursiveLookup(requestObject: DNSPacketType): Promise<DNSPacketType> {
   try {
-    let rootNameServerIP = pickRandomFromArray(rootNameServers).ipv4
+    let rootNameServerIP: string = pickRandomFromArray(rootNameServers).ipv4
     const resolverPort = 53
 
     let queryDomainName = requestObject.questions[0].name
-    let queryType = requestObject.questions[0].type || RecordType.A
+    const queryType = requestObject.questions[0].type || RecordType.A
 
-    while (true) {
-      let rootnameServerIPCopy = rootNameServerIP
-      let requestHeader = requestObject.header
-      let requestQuestion = requestObject.questions[0]
-      let requestAuthorities = requestObject.authorities
-      let requestAdditionals = requestObject.additionals
+    for (;;) {
+      const rootnameServerIPCopy = rootNameServerIP
+      const requestHeader = requestObject.header
+      const requestQuestion = requestObject.questions[0]
+      const requestAuthorities = requestObject.authorities
+      const requestAdditionals = requestObject.additionals
 
       console.log(
         `\x1b[36mLooking up ${queryDomainName} for ${RecordType[queryType]} record \x1b[0m\n`,
@@ -112,7 +112,7 @@ export async function recursiveLookup(requestObject: DNSPacketType): Promise<DNS
 
       const requestBuffer = DNSPacket.encodeRaw(requestObject)
       // perform forward lookup
-      let dnsResponse = await forwardResolver(requestBuffer, resolverPort, rootnameServerIPCopy)
+      const dnsResponse = await forwardResolver(requestBuffer, resolverPort, rootnameServerIPCopy)
 
       // throw error if response is not received
       if (!dnsResponse) {
@@ -184,7 +184,7 @@ export async function recursiveLookup(requestObject: DNSPacketType): Promise<DNS
           }
         })
         const randomAdditional = pickRandomFromArray(additionalWithIPv4) as DNSAnswerType
-        rootNameServerIP = randomAdditional.rdata
+        rootNameServerIP = randomAdditional.rdata as string
         queryDomainName = randomAdditional.name
         continue
       }
@@ -245,7 +245,7 @@ export async function recursiveLookup(requestObject: DNSPacketType): Promise<DNS
 
         if (res.answers && res.answers.length > 0) {
           const randomResponse: DNSAnswerType = pickRandomFromArray(res.answers)
-          rootNameServerIP = randomResponse.rdata
+          rootNameServerIP = randomResponse.rdata as string
           queryDomainName = randomResponse.name
           continue
         }

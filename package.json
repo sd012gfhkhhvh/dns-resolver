@@ -12,13 +12,22 @@
     "start:udp": "node dist/udp-server.js",
     "docker:redis": "docker run -p 6379:6379 --name dns-redis -d redis:latest",
     "docker:compose": "docker-compose up --build --abort-on-container-exit",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "prepare": "husky install"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@types/dns-packet": "^5.6.5",
-    "prettier": "^2.8.8"
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^8.0.3",
+    "prettier": "^3.3.3"
   },
   "dependencies": {
     "@types/express": "^5.0.2",

@@ -16,6 +16,10 @@ Thumbs.db
 Dockerfile*
 docker-compose*
 
+# Ignore prettier
+.prettierignore
+.prettierrc
+
 # Ignore git files
 .git
 .gitignore
