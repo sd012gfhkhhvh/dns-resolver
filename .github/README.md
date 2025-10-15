@@ -25,6 +25,7 @@ Runs on push and pull requests to `master`, `main`, and `develop` branches.
    - Only runs if linting passes
 
 **Required:**
+
 - Bun runtime (automatically installed via `oven-sh/setup-bun`)
 - Docker & Docker Compose (pre-installed on GitHub runners)
 

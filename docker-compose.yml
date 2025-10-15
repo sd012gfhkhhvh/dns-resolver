@@ -19,7 +19,7 @@ services:
       - UDP_PORT=2053
       - DOCKER_ENV=true
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/", "||", "exit", "1"]
+      test: ['CMD', 'curl', '-f', 'http://localhost:8080/', '||', 'exit', '1']
       interval: 10s
       timeout: 5s
       retries: 3
@@ -32,7 +32,7 @@ services:
     ports:
       - '6379:6379'
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
       timeout: 3s
       retries: 5

@@ -35,4 +35,4 @@ module.exports = {
     'no-var': 'error',
   },
   ignorePatterns: ['dist', 'node_modules', '*.js', '*.mjs', '.husky'],
-};
+}
