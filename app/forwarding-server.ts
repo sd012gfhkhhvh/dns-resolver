@@ -1,60 +1,54 @@
-import express, { type Request, type Response } from "express";
-import { z } from "zod";
-import { isValidDomain, isValidIpv4, isValidType } from "./utils";
-import {
-  QR_FLAG,
-  RecordClass,
-  RecordType,
-  RecordTypeString,
-  type DNSPacketType,
-} from "./types";
-import { forwardResolver } from "./resolver/forward-resolver";
-import { DNSPacket } from "./dns/DNSPacket";
+import express, { type Request, type Response } from 'express'
+import { z } from 'zod'
+import { isValidDomain, isValidIpv4, isValidType } from './utils'
+import { QR_FLAG, RecordClass, RecordType, RecordTypeString, type DNSPacketType } from './types'
+import { forwardResolver } from './resolver/forward-resolver'
+import { DNSPacket } from './dns/DNSPacket'
 
-const app = express();
+const app = express()
 
-const HTTP_PORT = 8080;
+const HTTP_PORT = 8080
 
-const FORWARD_SERVER_PORT = 2053; // our own UDP server port
-const FORWARD_SERVER_HOST = "127.0.0.1"; // our own UDP server
+const FORWARD_SERVER_PORT = 2053 // our own UDP server port
+const FORWARD_SERVER_HOST = '127.0.0.1' // our own UDP server
 
 const querySchema = z.object({
   domain: z.string().refine(isValidDomain, {
-    message: "Invalid domain name!",
+    message: 'Invalid domain name!',
   }),
   type: z
     .string()
     .refine(isValidType, {
-      message: "Invalid type!",
+      message: 'Invalid type!',
     })
     .optional()
-    .default("A"),
+    .default('A'),
   host: z
     .string()
     .refine(isValidIpv4, {
-      message: "Invalid host name!",
+      message: 'Invalid host name!',
     })
     .optional(),
-});
+})
 
-type QueryType = z.infer<typeof querySchema>;
+type QueryType = z.infer<typeof querySchema>
 
-app.get("/", (req, res) => {
-  res.send("Hello from the forwarding server!");
-});
+app.get('/', (req, res) => {
+  res.send('Hello from the forwarding server!')
+})
 
-app.get("/resolve", async (req: Request, res: Response) => {
+app.get('/resolve', async (req: Request, res: Response) => {
   try {
     // validate query
-    const parsedQuery = querySchema.safeParse(req.query);
+    const parsedQuery = querySchema.safeParse(req.query)
 
     if (!parsedQuery.success) {
-      console.error(parsedQuery.error);
-      res.status(400).send(parsedQuery.error.message);
-      return;
+      console.error(parsedQuery.error)
+      res.status(400).send(parsedQuery.error.message)
+      return
     }
 
-    const { domain, type, host } = parsedQuery.data as QueryType;
+    const { domain, type, host } = parsedQuery.data as QueryType
 
     const dnsQueryObject: DNSPacketType = {
       header: {
@@ -82,15 +76,15 @@ app.get("/resolve", async (req: Request, res: Response) => {
       answers: [],
       authorities: [],
       additionals: [],
-    };
+    }
 
-    const dnsQueryPacket: Buffer = DNSPacket.encodeRaw(dnsQueryObject);
+    const dnsQueryPacket: Buffer = DNSPacket.encodeRaw(dnsQueryObject)
 
     const dnsResponseObject = await forwardResolver(
       dnsQueryPacket,
       host ? 53 : FORWARD_SERVER_PORT,
-      host || FORWARD_SERVER_HOST
-    );
+      host || FORWARD_SERVER_HOST,
+    )
 
     // res.json(dnsResponseObject);
     res.send(`
@@ -143,30 +137,22 @@ app.get("/resolve", async (req: Request, res: Response) => {
         <p><strong>Queried DNS Server:</strong> ${
           host || `${FORWARD_SERVER_HOST}:${FORWARD_SERVER_PORT}`
         }</p>
-        <p><strong>Response Code:</strong> ${
-          dnsResponseObject.header?.rcode
-        }</p>
-        <p><strong>Answer Count:</strong> ${
-          dnsResponseObject.header?.ancount
-        }</p>
-        <p><strong>Authority Count:</strong> ${
-          dnsResponseObject.header?.nscount
-        }</p>
-        <p><strong>Additional Count:</strong> ${
-          dnsResponseObject.header?.arcount
-        }</p>
+        <p><strong>Response Code:</strong> ${dnsResponseObject.header?.rcode}</p>
+        <p><strong>Answer Count:</strong> ${dnsResponseObject.header?.ancount}</p>
+        <p><strong>Authority Count:</strong> ${dnsResponseObject.header?.nscount}</p>
+        <p><strong>Additional Count:</strong> ${dnsResponseObject.header?.arcount}</p>
         <h3>Full Response Object:</h3>
         <pre>${JSON.stringify(dnsResponseObject, null, 2)}</pre>
         </div>
       </body>
       </html>
-    `);
+    `)
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Internal server error");
+    console.error(error)
+    res.status(500).send('Internal server error')
   }
-});
+})
 
 app.listen(HTTP_PORT, () => {
-  console.log(`Forwarding server listening on port ${HTTP_PORT}`);
-});
+  console.log(`Forwarding server listening on port ${HTTP_PORT}`)
+})

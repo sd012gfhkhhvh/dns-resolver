@@ -5,12 +5,12 @@ import {
   type DNSAnswerType,
   type DNSPacketType,
   type DNSQuestionType,
-} from "../types";
-import { rootNameServers } from "../root-name-server";
-import { forwardResolver } from "./forward-resolver";
-import { DNSPacket } from "../dns/DNSPacket";
-import { isValidDomain, pickRandomFromArray } from "../utils";
-import { DNSCache } from "../cache/dns-cache";
+} from '../types'
+import { rootNameServers } from '../root-name-server'
+import { forwardResolver } from './forward-resolver'
+import { DNSPacket } from '../dns/DNSPacket'
+import { isValidDomain, pickRandomFromArray } from '../utils'
+import { DNSCache } from '../cache/dns-cache'
 
 /**
  * Resolves DNS queries recursively, utilizing a cache for improved performance.
@@ -26,21 +26,19 @@ import { DNSCache } from "../cache/dns-cache";
  * answers to the questions.
  */
 
-export async function recursiveResolver(
-  requestObject: DNSPacketType
-): Promise<DNSPacketType> {
+export async function recursiveResolver(requestObject: DNSPacketType): Promise<DNSPacketType> {
   try {
-    const dnsQueryResponseObjects: DNSPacketType[] = [];
-    const cache = new DNSCache();
+    const dnsQueryResponseObjects: DNSPacketType[] = []
+    const cache = new DNSCache()
 
     // if there are multiple questions then resolve them one by one
     for (const question of requestObject.questions) {
       // check if the answer is in the cache
-      const cachedAnswers = await cache.get(question);
+      const cachedAnswers = await cache.get(question)
 
       // if the answer is in the cache build the response packet
       if (cachedAnswers) {
-        console.log("\x1b[32m\u2713\x1b[0m Cache hit! \n");
+        console.log('\x1b[32m\u2713\x1b[0m Cache hit! \n')
         const responseObject: DNSPacketType = {
           header: {
             ...requestObject.header,
@@ -52,38 +50,35 @@ export async function recursiveResolver(
           answers: cachedAnswers,
           authorities: [],
           additionals: [],
-        };
-        dnsQueryResponseObjects.push(responseObject);
+        }
+        dnsQueryResponseObjects.push(responseObject)
       } else {
-        console.log("\x1b[31m\u2717\x1b[0m Cache miss! \n");
+        console.log('\x1b[31m\u2717\x1b[0m Cache miss! \n')
         // construct the dnsPacket Object with single question
         const dnsQuery = new DNSPacket({
           header: { ...requestObject.header, qdcount: 1 },
           questions: [question],
-        }).toObject();
+        }).toObject()
 
-        const result = await recursiveLookup(dnsQuery);
-        dnsQueryResponseObjects.push(result);
+        const result = await recursiveLookup(dnsQuery)
+        dnsQueryResponseObjects.push(result)
         // check for valid response to set in cache
-        if (
-          result.header.rcode === ResponseCode.NO_ERROR &&
-          result.answers.length > 0
-        ) {
-          const setResult = await cache.set(question, result.answers);
-          if (setResult == "OK") {
-            console.log("Set result in cache \n");
+        if (result.header.rcode === ResponseCode.NO_ERROR && result.answers.length > 0) {
+          const setResult = await cache.set(question, result.answers)
+          if (setResult == 'OK') {
+            console.log('Set result in cache \n')
           } else {
-            console.log("Unable to set in cache \n");
+            console.log('Unable to set in cache \n')
           }
         }
       }
     }
     // return the first valid response
     return dnsQueryResponseObjects.find(
-      (response) => response != null && response != undefined
-    ) as DNSPacketType;
+      (response) => response != null && response != undefined,
+    ) as DNSPacketType
   } catch (e) {
-    return e as DNSPacketType;
+    return e as DNSPacketType
   }
 }
 
@@ -96,38 +91,32 @@ export async function recursiveResolver(
  * @param {DNSPacketType} requestObject - The DNS packet object representing the query.
  * @returns {Promise<DNSPacketType>} - The final response DNS packet object.
  */
-export async function recursiveLookup(
-  requestObject: DNSPacketType
-): Promise<DNSPacketType> {
+export async function recursiveLookup(requestObject: DNSPacketType): Promise<DNSPacketType> {
   try {
-    let rootNameServerIP = pickRandomFromArray(rootNameServers).ipv4;
-    const resolverPort = 53;
+    let rootNameServerIP = pickRandomFromArray(rootNameServers).ipv4
+    const resolverPort = 53
 
-    let queryDomainName = requestObject.questions[0].name;
-    let queryType = requestObject.questions[0].type || RecordType.A;
+    let queryDomainName = requestObject.questions[0].name
+    let queryType = requestObject.questions[0].type || RecordType.A
 
     while (true) {
-      let rootnameServerIPCopy = rootNameServerIP;
-      let requestHeader = requestObject.header;
-      let requestQuestion = requestObject.questions[0];
-      let requestAuthorities = requestObject.authorities;
-      let requestAdditionals = requestObject.additionals;
+      let rootnameServerIPCopy = rootNameServerIP
+      let requestHeader = requestObject.header
+      let requestQuestion = requestObject.questions[0]
+      let requestAuthorities = requestObject.authorities
+      let requestAdditionals = requestObject.additionals
 
       console.log(
-        `\x1b[36mLooking up ${queryDomainName} for ${RecordType[queryType]} record \x1b[0m\n`
-      );
+        `\x1b[36mLooking up ${queryDomainName} for ${RecordType[queryType]} record \x1b[0m\n`,
+      )
 
-      const requestBuffer = new DNSPacket(requestObject).encode();
+      const requestBuffer = DNSPacket.encodeRaw(requestObject)
       // perform forward lookup
-      let dnsResponse = await forwardResolver(
-        requestBuffer,
-        resolverPort,
-        rootnameServerIPCopy
-      );
+      let dnsResponse = await forwardResolver(requestBuffer, resolverPort, rootnameServerIPCopy)
 
       // throw error if response is not received
       if (!dnsResponse) {
-        throw new Error("No response received");
+        throw new Error('No response received')
       }
 
       // id response is giving an error of NAME_ERROR then return the response
@@ -141,36 +130,31 @@ export async function recursiveLookup(
             qr: QR_FLAG.RESPONSE,
             rcode: ResponseCode.NAME_ERROR,
           },
-        };
+        }
       }
 
       // if find answer return and end loop
       if (dnsResponse.answers && dnsResponse.answers.length > 0) {
-        const answers = dnsResponse.answers;
-        const cnameAnswers = answers.filter(
-          (answer) => answer.type === RecordType.CNAME
-        );
+        const answers = dnsResponse.answers
+        const cnameAnswers = answers.filter((answer) => answer.type === RecordType.CNAME)
         // if cname record is present then we have to resolve the cname record to get the ip
         // unless user has asked for cname record explicitly
-        if (
-          cnameAnswers.length > 0 &&
-          requestQuestion.type !== RecordType.CNAME
-        ) {
+        if (cnameAnswers.length > 0 && requestQuestion.type !== RecordType.CNAME) {
           for (const cnameAnswer of cnameAnswers) {
             const cnameQuestion: DNSQuestionType = {
               name: cnameAnswer.rdata as string,
               type: RecordType.CNAME,
               class: 1,
-            };
+            }
             const cnameDNSPacket = new DNSPacket({
               header: requestHeader,
               questions: [cnameQuestion],
               authorities: requestAuthorities,
               additionals: requestAdditionals,
-            });
-            queryDomainName = cnameQuestion.name;
-            const res = await recursiveLookup(cnameDNSPacket.toObject());
-            if (res?.answers) answers.push(...res.answers);
+            })
+            queryDomainName = cnameQuestion.name
+            const res = await recursiveLookup(cnameDNSPacket.toObject())
+            if (res?.answers) answers.push(...res.answers)
           }
         }
         const finalResponse = new DNSPacket({
@@ -187,28 +171,26 @@ export async function recursiveLookup(
           answers,
           authorities: [],
           additionals: [],
-        }).toObject();
+        }).toObject()
 
-        return finalResponse;
+        return finalResponse
       }
 
       // if find additional use those ip and continue the loop in hope that you will get the answer
       if (dnsResponse.additionals && dnsResponse.additionals.length > 0) {
         const additionalWithIPv4 = dnsResponse.additionals.filter((record) => {
           if (record.rdlength === 4) {
-            return record;
+            return record
           }
-        });
-        const randomAdditional = pickRandomFromArray(
-          additionalWithIPv4
-        ) as DNSAnswerType;
-        rootNameServerIP = randomAdditional.rdata;
-        queryDomainName = randomAdditional.name;
-        continue;
+        })
+        const randomAdditional = pickRandomFromArray(additionalWithIPv4) as DNSAnswerType
+        rootNameServerIP = randomAdditional.rdata
+        queryDomainName = randomAdditional.name
+        continue
       }
 
       // if authority is present while additional is not present simply means, now we have to perform another lookup to get the additional records or basically ip of these authority servers to proceed with the original query
-      let validAuthorityRecord: DNSAnswerType | undefined;
+      let validAuthorityRecord: DNSAnswerType | undefined
       if (
         dnsResponse.authorities &&
         dnsResponse.authorities.length > 0 &&
@@ -218,15 +200,15 @@ export async function recursiveLookup(
           .map((authorityRecord) => {
             return {
               ...authorityRecord,
-              name: authorityRecord.rdata || "",
-            };
+              name: authorityRecord.rdata || '',
+            }
           })
           .filter((authorityRecord) => {
             if (isValidDomain(String(authorityRecord.name))) {
-              return authorityRecord;
+              return authorityRecord
             }
-          });
-        validAuthorityRecord = pickRandomFromArray(validAuthorityRecords);
+          })
+        validAuthorityRecord = pickRandomFromArray(validAuthorityRecords)
 
         // if validAuthorityRecord is a SOA record then return the response with SOA record
         if (validAuthorityRecord?.type === RecordType.SOA) {
@@ -235,22 +217,20 @@ export async function recursiveLookup(
               ...requestHeader,
               qr: QR_FLAG.RESPONSE,
               rcode: ResponseCode.NAME_ERROR,
-              nscount: dnsResponse.authorities
-                ? dnsResponse.authorities.length
-                : 0,
+              nscount: dnsResponse.authorities ? dnsResponse.authorities.length : 0,
             },
             questions: [requestQuestion],
             answers: [],
             authorities: dnsResponse.authorities || [],
             additionals: dnsResponse.additionals || [],
-          } as DNSPacketType;
+          } as DNSPacketType
         }
       }
 
       // if valid authority record is present then perform another lookup
       if (validAuthorityRecord) {
-        console.log("validAuthorityRecord", validAuthorityRecord);
-        
+        console.log('validAuthorityRecord', validAuthorityRecord)
+
         const newQuery = new DNSPacket({
           header: requestHeader,
           questions: [
@@ -260,16 +240,14 @@ export async function recursiveLookup(
               class: validAuthorityRecord.class,
             },
           ],
-        }).toObject();
-        const res = await recursiveLookup(newQuery);
+        }).toObject()
+        const res = await recursiveLookup(newQuery)
 
         if (res.answers && res.answers.length > 0) {
-          const randomResponse: DNSAnswerType = pickRandomFromArray(
-            res.answers
-          );
-          rootNameServerIP = randomResponse.rdata;
-          queryDomainName = randomResponse.name;
-          continue;
+          const randomResponse: DNSAnswerType = pickRandomFromArray(res.answers)
+          rootNameServerIP = randomResponse.rdata
+          queryDomainName = randomResponse.name
+          continue
         }
       }
 
@@ -287,10 +265,10 @@ export async function recursiveLookup(
         answers: [],
         authorities: dnsResponse.authorities || [],
         additionals: [],
-      }).toObject();
+      }).toObject()
     }
   } catch (error) {
-    console.error("Error in recursiveLookup:", error, "\n");
+    console.error('Error in recursiveLookup:', error, '\n')
     return new DNSPacket({
       header: {
         ...requestObject.header,
@@ -303,6 +281,6 @@ export async function recursiveLookup(
       answers: [],
       authorities: [],
       additionals: [],
-    }).toObject();
+    }).toObject()
   }
 }

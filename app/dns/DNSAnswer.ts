@@ -1,13 +1,8 @@
-import {
-  RecordClass,
-  RecordType,
-  type DNSAnswerType,
-  type RDataType,
-} from "../types";
-import { decodeDomainName, encodeDomainName } from "../utils";
-import { BaseDNSComponent } from "./BaseDNSComponent";
-import type { DNSPacket } from "./DNSPacket";
-import { decodeRecordData, encodeRecordData } from "./rData";
+import { RecordClass, RecordType, type DNSAnswerType, type RDataType } from '../types'
+import { decodeDomainName, encodeDomainName } from '../utils'
+import { BaseDNSComponent } from './BaseDNSComponent'
+import type { DNSPacket } from './DNSPacket'
+import { decodeRecordData, encodeRecordData } from './rData'
 
 /**
  * Represents a DNS answer.
@@ -17,23 +12,23 @@ import { decodeRecordData, encodeRecordData } from "./rData";
  * The rdata depends on the type of the resource record.
  */
 export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
-  name: string;
-  type: RecordType;
-  class: RecordClass;
-  ttl: number;
-  rdlength: number;
-  rdata: RDataType;
-  dnsObject?: DNSPacket;
-  nextOffset?: number;
+  name: string
+  type: RecordType
+  class: RecordClass
+  ttl: number
+  rdlength: number
+  rdata: RDataType
+  dnsObject?: DNSPacket
+  nextOffset?: number
 
   constructor(data: Partial<DNSAnswerType> = {}) {
-    super();
-    this.name = data.name || "";
-    this.type = data.type || RecordType.A;
-    this.class = data.class || RecordClass.IN;
-    this.ttl = data.ttl || 0;
-    this.rdlength = data.rdlength || 0;
-    this.rdata = data.rdata || "";
+    super()
+    this.name = data.name || ''
+    this.type = data.type || RecordType.A
+    this.class = data.class || RecordClass.IN
+    this.ttl = data.ttl || 0
+    this.rdlength = data.rdlength || 0
+    this.rdata = data.rdata || ''
   }
 
   /**
@@ -56,47 +51,39 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
 
   encode(): Buffer {
     // Encode domain name to DNS format
-    const nameBuffer = encodeDomainName(
-      this.name,
-      this.dnsObject?.encodedLabels,
-      this.nextOffset
-    );
+    const nameBuffer = encodeDomainName(this.name, this.dnsObject?.encodedLabels, this.nextOffset)
 
     const rDataOffset = this.nextOffset
       ? this.nextOffset + nameBuffer.length + 10
-      : nameBuffer.length + 10;
+      : nameBuffer.length + 10
 
-    const rData: Buffer = encodeRecordData.apply(this, [
-      this.rdata,
-      this.type,
-      rDataOffset,
-    ]);
+    const rData: Buffer = encodeRecordData.apply(this, [this.rdata, this.type, rDataOffset])
 
-    let calculatedRdlength = rData.length;
+    let calculatedRdlength = rData.length
     // based on the presence of compression the rdlength can be different
     if (this.rdlength !== calculatedRdlength) {
-      this.rdlength = calculatedRdlength;
+      this.rdlength = calculatedRdlength
     }
 
-    const bufferSize = nameBuffer.length + 10 + this.rdlength; // 2 bytes for type, 2 bytes for class, 4 bytes for TTL, 2 bytes for rdlength, and rdlength bytes for rdata
-    const buffer = Buffer.alloc(bufferSize);
+    const bufferSize = nameBuffer.length + 10 + this.rdlength // 2 bytes for type, 2 bytes for class, 4 bytes for TTL, 2 bytes for rdlength, and rdlength bytes for rdata
+    const buffer = Buffer.alloc(bufferSize)
 
     // Copy name into buffer
     // nameBuffer.copy(buffer, 0);
-    buffer.set(nameBuffer, 0);
+    buffer.set(nameBuffer, 0)
 
     // Write type, class, TTL, and rdlength
-    buffer.writeUInt16BE(this.type, nameBuffer.length);
-    buffer.writeUInt16BE(this.class, nameBuffer.length + 2);
-    buffer.writeUInt32BE(this.ttl, nameBuffer.length + 4);
+    buffer.writeUInt16BE(this.type, nameBuffer.length)
+    buffer.writeUInt16BE(this.class, nameBuffer.length + 2)
+    buffer.writeUInt32BE(this.ttl, nameBuffer.length + 4)
 
-    buffer.writeUInt16BE(this.rdlength, nameBuffer.length + 8);
+    buffer.writeUInt16BE(this.rdlength, nameBuffer.length + 8)
 
     // Copy rdata into buffer
     // rData.copy(buffer, nameBuffer.length + 10);
-    buffer.set(rData, nameBuffer.length + 10);
+    buffer.set(rData, nameBuffer.length + 10)
 
-    return buffer;
+    return buffer
   }
 
   /**
@@ -107,15 +94,11 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
    * @param {DNSPacket} thisObject - The top-level DNSPacket object.
    * @returns The encoded DNS answer as a Buffer.
    */
-  static encodeRaw(
-    data: DNSAnswerType,
-    nextOffset: number,
-    thisObject: DNSPacket
-  ): Buffer {
-    const dnsAnswer = new DNSAnswer(data);
-    dnsAnswer.nextOffset = nextOffset;
-    dnsAnswer.dnsObject = thisObject; // Attach the top-level DNSPacket object
-    return dnsAnswer.encode();
+  static encodeRaw(data: DNSAnswerType, nextOffset: number, thisObject: DNSPacket): Buffer {
+    const dnsAnswer = new DNSAnswer(data)
+    dnsAnswer.nextOffset = nextOffset
+    dnsAnswer.dnsObject = thisObject // Attach the top-level DNSPacket object
+    return dnsAnswer.encode()
   }
 
   /**
@@ -131,7 +114,7 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
       ttl: this.ttl,
       rdlength: this.rdlength,
       rdata: this.rdata,
-    };
+    }
   }
 
   /**
@@ -142,21 +125,15 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
    * result is the decoded DNSAnswer.
    * nextOffset is the offset immediately after the decoded answer.
    */
-  static decode(
-    buffer: Buffer,
-    offset: number = 0
-  ): { result: DNSAnswer; nextOffset: number } {
-    const { domainName: decodedName, nextOffset } = decodeDomainName(
-      buffer,
-      offset
-    );
+  static decode(buffer: Buffer, offset: number = 0): { result: DNSAnswer; nextOffset: number } {
+    const { domainName: decodedName, nextOffset } = decodeDomainName(buffer, offset)
 
-    const type = buffer.readUInt16BE(nextOffset);
-    const _class = buffer.readUInt16BE(nextOffset + 2);
-    const ttl = buffer.readUInt32BE(nextOffset + 4);
+    const type = buffer.readUInt16BE(nextOffset)
+    const _class = buffer.readUInt16BE(nextOffset + 2)
+    const ttl = buffer.readUInt32BE(nextOffset + 4)
 
-    const rdlength = buffer.readUInt16BE(nextOffset + 8); // 8 --> 2 byte for type, 2 byte for class, 4 byte for TTL
-    const rdata = decodeRecordData(buffer, nextOffset + 10, type, rdlength);
+    const rdlength = buffer.readUInt16BE(nextOffset + 8) // 8 --> 2 byte for type, 2 byte for class, 4 byte for TTL
+    const rdata = decodeRecordData(buffer, nextOffset + 10, type, rdlength)
 
     return {
       result: new DNSAnswer({
@@ -168,18 +145,18 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
         rdata,
       }),
       nextOffset: nextOffset + 10 + rdlength,
-    };
+    }
   }
 }
 
 const testAnswer = new DNSAnswer({
-  name: "google.com",
+  name: 'google.com',
   type: RecordType.A,
   class: RecordClass.IN,
   ttl: 3600,
   rdlength: 4,
-  rdata: "1.2.3.4",
-});
+  rdata: '1.2.3.4',
+})
 // console.log(testAnswer.encode());
 // const { result: decodedAnswer, nextOffset: aOffset } = DNSAnswer.decode(
 //   testAnswer.encode()

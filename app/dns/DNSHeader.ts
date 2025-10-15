@@ -1,5 +1,5 @@
-import { BaseDNSComponent } from "./BaseDNSComponent";
-import { OpCode, QR_FLAG, ResponseCode, type DNSHeaderType } from "../types";
+import { BaseDNSComponent } from './BaseDNSComponent'
+import { OpCode, QR_FLAG, ResponseCode, type DNSHeaderType } from '../types'
 
 /**
  * Represents a DNS header.
@@ -10,19 +10,19 @@ import { OpCode, QR_FLAG, ResponseCode, type DNSHeaderType } from "../types";
  * and number of additionals.
  */
 export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
-  id: number;
-  qr: QR_FLAG;
-  opcode: OpCode;
-  aa: number;
-  tc: number;
-  rd: number;
-  ra: number;
-  z: number;
-  rcode: ResponseCode;
-  qdcount: number;
-  ancount: number;
-  nscount: number;
-  arcount: number;
+  id: number
+  qr: QR_FLAG
+  opcode: OpCode
+  aa: number
+  tc: number
+  rd: number
+  ra: number
+  z: number
+  rcode: ResponseCode
+  qdcount: number
+  ancount: number
+  nscount: number
+  arcount: number
   /**
    * Constructs a DNSHeader with the given data.
    *
@@ -43,20 +43,20 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
    * - arcount: The number of additionals.
    */
   constructor(data: Partial<DNSHeaderType> = {}) {
-    super();
-    this.id = data.id ?? 0;
-    this.qr = data.qr ?? QR_FLAG.QUERY;
-    this.opcode = data.opcode ?? OpCode.STANDARD_QUERY;
-    this.aa = data.aa ?? 0;
-    this.tc = data.tc ?? 0;
-    this.rd = data.rd ?? 0;
-    this.ra = data.ra ?? 0;
-    this.z = data.z ?? 0;
-    this.rcode = data.rcode ?? ResponseCode.NO_ERROR;
-    this.qdcount = data.qdcount ?? 0;
-    this.ancount = data.ancount ?? 0;
-    this.nscount = data.nscount ?? 0;
-    this.arcount = data.arcount ?? 0;
+    super()
+    this.id = data.id ?? 0
+    this.qr = data.qr ?? QR_FLAG.QUERY
+    this.opcode = data.opcode ?? OpCode.STANDARD_QUERY
+    this.aa = data.aa ?? 0
+    this.tc = data.tc ?? 0
+    this.rd = data.rd ?? 0
+    this.ra = data.ra ?? 0
+    this.z = data.z ?? 0
+    this.rcode = data.rcode ?? ResponseCode.NO_ERROR
+    this.qdcount = data.qdcount ?? 0
+    this.ancount = data.ancount ?? 0
+    this.nscount = data.nscount ?? 0
+    this.arcount = data.arcount ?? 0
   }
 
   /**
@@ -77,9 +77,9 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
    */
   encode(): Buffer {
     // The header is 12 bytes long
-    const header = Buffer.alloc(12);
+    const header = Buffer.alloc(12)
     // The first 2 bytes is the id
-    header.writeUInt16BE(this.id, 0);
+    header.writeUInt16BE(this.id, 0)
     // The next 2 bytes are all the flags
     // The qr flag is the first bit of the first byte
     // The opcode is the next 4 bits
@@ -92,17 +92,17 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
       (this.rd << 8) |
       (this.ra << 7) |
       (this.z << 4) |
-      this.rcode;
-    header.writeUInt16BE(flags, 2);
+      this.rcode
+    header.writeUInt16BE(flags, 2)
     // The next 2 bytes are the qdcount
-    header.writeUInt16BE(this.qdcount, 4);
+    header.writeUInt16BE(this.qdcount, 4)
     // The next 2 bytes are the ancount
-    header.writeUInt16BE(this.ancount, 6);
+    header.writeUInt16BE(this.ancount, 6)
     // The next 2 bytes are the nscount
-    header.writeUInt16BE(this.nscount, 8);
+    header.writeUInt16BE(this.nscount, 8)
     // The final 2 bytes are the arcount
-    header.writeUInt16BE(this.arcount, 10);
-    return header;
+    header.writeUInt16BE(this.arcount, 10)
+    return header
   }
 
   /**
@@ -112,7 +112,7 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
    * @returns The encoded DNS header.
    */
   static encodeRaw(data: DNSHeaderType): Buffer {
-    return new DNSHeader(data).encode();
+    return new DNSHeader(data).encode()
   }
 
   /**
@@ -135,7 +135,7 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
       ancount: this.ancount,
       nscount: this.nscount,
       arcount: this.arcount,
-    };
+    }
   }
 
   /**
@@ -146,10 +146,7 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
    * result is the decoded DNSHeader.
    * offset is the offset immediately after the decoded header.
    */
-  static decode(
-    buffer: Buffer,
-    offset: number = 0
-  ): { result: DNSHeader; nextOffset: number } {
+  static decode(buffer: Buffer, offset: number = 0): { result: DNSHeader; nextOffset: number } {
     return {
       result: new DNSHeader({
         id: buffer.readUInt16BE(offset),
@@ -167,7 +164,7 @@ export class DNSHeader extends BaseDNSComponent<DNSHeaderType> {
         arcount: buffer.readUInt16BE(offset + 10),
       }),
       nextOffset: offset + 12,
-    };
+    }
   }
 }
 // NOTE: Pros of returning a class instance insatade of a raw object in decode method
@@ -180,7 +177,7 @@ const testHeader = new DNSHeader({
   qr: QR_FLAG.RESPONSE,
   // qdcount: 1,
   // ancount: 1,
-});
+})
 
 // console.log(testHeader.encode());
 // const { result: decodedHeader, nextOffset: hOffset } = DNSHeader.decode(

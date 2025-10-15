@@ -1,4 +1,4 @@
-import type { DNSPacket } from "./dns/DNSPacket";
+import type { DNSPacket } from './dns/DNSPacket'
 
 /**
  * The possible query/response flags in a DNS header.
@@ -63,65 +63,65 @@ export interface DNSHeaderType {
   /**
    * A 16 bit identifier assigned by the program that generates any kind of query.
    */
-  id?: number;
+  id?: number
   /**
    * A one bit field that specifies whether this message is a query (0), or a response (1).
    */
-  qr?: number;
+  qr?: number
   /**
    * A four bit field that specifies kind of query in this message.
    * This value is set by the originator of a query
    * and copied into the response.
    */
-  opcode?: OpCode;
+  opcode?: OpCode
   /**
    * Authoritative Answer - this bit is valid in responses,
    * and specifies that the responding name server is an authority for the domain name in question section.
    */
-  aa?: number;
+  aa?: number
   /**
    * TrunCation - specifies that this message was truncated.
    */
-  tc?: number;
+  tc?: number
   /**
    * Recursion Desired - this bit may be set in a query
    * and is copied into the response.
    * If RD is set, it directs the name server to pursue the query recursively.
    * Recursive query support is optional.
    */
-  rd?: number;
+  rd?: number
   /**
    * Recursion Available - this be is set or cleared in a response,
    * and denotes whether recursive query support is available in the name server.
    */
-  ra?: number;
+  ra?: number
   /**
    * Reserved for future use.
    * Must be zero in all queries and responses.
    */
-  z?: number;
+  z?: number
   /**
    * Response code - this 4 bit field is set as part of
    * responses.
    * The values have the following interpretation:
    */
-  rcode?: ResponseCode;
+  rcode?: ResponseCode
   /**
    * an unsigned 16 bit integer that specifies the number of entries in the question section.
    */
-  qdcount?: number;
+  qdcount?: number
   /**
    * an unsigned 16 bit integer that specifies the number of resource records in the answer section.
    */
-  ancount?: number;
+  ancount?: number
   /**
    * an unsigned 16 bit integer that specifies the number of name server resource records in the authority records section.
    */
-  nscount?: number;
+  nscount?: number
   /**
    * an unsigned 16 bit integer that specifies the number of resource records in the additional records section.
    */
-  arcount?: number;
+  arcount?: number
 }
 
 /**
@@ -134,25 +134,25 @@ export interface DNSQuestionType {
   /**
    * The domain name of the resource record.
    */
-  name?: string;
+  name?: string
   /**
    * The type of the resource record.
    */
-  type?: RecordType;
+  type?: RecordType
   /**
    * The class of the resource record.
    */
-  class?: RecordClass;
+  class?: RecordClass
 
   /**
    * The DNS packet object that contains this resource record.
    */
-  dnsObject?: DNSPacket;
+  dnsObject?: DNSPacket
 
   /**
    * The offset to start encoding from.
    */
-  nextOffset?: number;
+  nextOffset?: number
 }
 
 /**
@@ -166,56 +166,56 @@ export interface DNSAnswerType {
   /**
    * The domain name of the resource record.
    */
-  name?: string;
+  name?: string
   /**
    * The type of the resource record.
    */
-  type?: RecordType;
+  type?: RecordType
   /**
    * The class of the resource record.
    */
-  class?: RecordClass;
+  class?: RecordClass
   /**
    * The time to live of the resource record in seconds.
    */
-  ttl?: number;
+  ttl?: number
   /**
    * The length of the rdata field in octets.
    */
-  rdlength?: number;
+  rdlength?: number
   /**
    * The data for the resource record.
    */
-  rdata?: RDataType;
+  rdata?: RDataType
 
   /**
    * The DNS packet object that contains this resource record.
    */
-  dnsObject?: DNSPacket;
+  dnsObject?: DNSPacket
 
   /**
    * The offset to start encoding from.
    */
-  nextOffset?: number;
+  nextOffset?: number
 }
 
 /**
  * The possible types of resource records.
  */
-export type RDataType = string | SOA_RECORD; // TODO: add more types for different record types
+export type RDataType = string | SOA_RECORD // TODO: add more types for different record types
 
 /**
  * The structure of a DNS SOA record.
  */
 export type SOA_RECORD = {
-  mname: string;
-  rname: string;
-  serial: number;
-  refresh: number;
-  retry: number;
-  expire: number;
-  minimum: number;
-};
+  mname: string
+  rname: string
+  serial: number
+  refresh: number
+  retry: number
+  expire: number
+  minimum: number
+}
 /**
  * The possible types of resource records.
  */
@@ -292,22 +292,22 @@ export enum RecordType {
 }
 
 export enum RecordTypeString {
-  A = "A",
-  NS = "NS",
-  MD = "MD",
-  MF = "MF",
-  CNAME = "CNAME",
-  SOA = "SOA",
-  MB = "MB",
-  MG = "MG",
-  MR = "MR",
-  NULL = "NULL",
-  WKS = "WKS",
-  PTR = "PTR",
-  HINFO = "HINFO",
-  MINFO = "MINFO",
-  MX = "MX",
-  TXT = "TXT",
+  A = 'A',
+  NS = 'NS',
+  MD = 'MD',
+  MF = 'MF',
+  CNAME = 'CNAME',
+  SOA = 'SOA',
+  MB = 'MB',
+  MG = 'MG',
+  MR = 'MR',
+  NULL = 'NULL',
+  WKS = 'WKS',
+  PTR = 'PTR',
+  HINFO = 'HINFO',
+  MINFO = 'MINFO',
+  MX = 'MX',
+  TXT = 'TXT',
 }
 
 /**
@@ -343,32 +343,32 @@ export interface DNSPacketType {
   /**
    * The header of the DNS packet.
    */
-  header: DNSHeaderType;
+  header: DNSHeaderType
 
   /**
    * The list of questions in the DNS packet.
    */
-  questions: DNSQuestionType[];
+  questions: DNSQuestionType[]
 
   /**
    * The list of answers in the DNS packet.
    */
-  answers: DNSAnswerType[];
+  answers: DNSAnswerType[]
 
   /**
    * The list of authority records in the DNS packet.
    */
-  authorities: DNSAnswerType[];
+  authorities: DNSAnswerType[]
 
   /**
    * The list of additional records in the DNS packet.
    */
-  additionals: DNSAnswerType[];
+  additionals: DNSAnswerType[]
 }
 
 /**
  * An object that maps labels to their encoded offsets in a DNS buffer.
  */
 export type ENCODED_LABELS = {
-  [label: string]: number;
-};
+  [label: string]: number
+}

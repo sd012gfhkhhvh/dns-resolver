@@ -9,12 +9,12 @@ export abstract class BaseDNSComponent<T> {
    *
    * @returns The encoded DNS component as a Buffer.
    */
-  abstract encode(): Buffer;
+  abstract encode(): Buffer
 
   /**
    * Converts the DNS component into a raw object.
    *
    * @returns {T} The raw object representation of the DNS component.
    */
-  abstract toObject(): T;
+  abstract toObject(): T
 }

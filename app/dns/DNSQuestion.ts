@@ -1,12 +1,7 @@
-import {
-  RecordClass,
-  RecordType,
-  type DNSQuestionType,
-  type ENCODED_LABELS,
-} from "../types";
-import { encodeDomainName, decodeDomainName } from "../utils";
-import { BaseDNSComponent } from "./BaseDNSComponent";
-import type { DNSPacket } from "./DNSPacket";
+import { RecordClass, RecordType, type DNSQuestionType, type ENCODED_LABELS } from '../types'
+import { encodeDomainName, decodeDomainName } from '../utils'
+import { BaseDNSComponent } from './BaseDNSComponent'
+import type { DNSPacket } from './DNSPacket'
 
 /**
  * Represents a DNS question.
@@ -15,11 +10,11 @@ import type { DNSPacket } from "./DNSPacket";
  * It contains the domain name, type, and class of the resource record.
  */
 export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
-  name: string;
-  type: RecordType;
-  class: RecordClass;
-  dnsObject?: DNSPacket;
-  nextOffset?: number;
+  name: string
+  type: RecordType
+  class: RecordClass
+  dnsObject?: DNSPacket
+  nextOffset?: number
 
   /**
    * Constructs a DNSQuestion with the given data.
@@ -32,10 +27,10 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    */
 
   constructor(data: Partial<DNSQuestionType> = {}) {
-    super();
-    this.name = data.name || "";
-    this.type = data.type || RecordType.A;
-    this.class = data.class || RecordClass.IN;
+    super()
+    this.name = data.name || ''
+    this.type = data.type || RecordType.A
+    this.class = data.class || RecordClass.IN
   }
 
   /**
@@ -45,23 +40,19 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    */
   encode(): Buffer {
     // Encode domain name to DNS format
-    const nameBuffer = encodeDomainName(
-      this.name,
-      this.dnsObject?.encodedLabels,
-      this.nextOffset
-    );
-    const bufferSize = nameBuffer.length + 4; // 2 bytes for type, 2 bytes for class
-    const buffer = Buffer.alloc(bufferSize);
+    const nameBuffer = encodeDomainName(this.name, this.dnsObject?.encodedLabels, this.nextOffset)
+    const bufferSize = nameBuffer.length + 4 // 2 bytes for type, 2 bytes for class
+    const buffer = Buffer.alloc(bufferSize)
 
     // Copy name into buffer
     // nameBuffer.copy(buffer, 0);
-    buffer.set(nameBuffer, 0);
+    buffer.set(nameBuffer, 0)
 
     // Write type and class
-    buffer.writeUInt16BE(this.type, nameBuffer.length);
-    buffer.writeUInt16BE(this.class, nameBuffer.length + 2);
+    buffer.writeUInt16BE(this.type, nameBuffer.length)
+    buffer.writeUInt16BE(this.class, nameBuffer.length + 2)
 
-    return buffer;
+    return buffer
   }
 
   /**
@@ -72,15 +63,11 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    * @param {DNSPacket} thisObject - The top-level DNSPacket object.
    * @returns The encoded DNS question as a Buffer.
    */
-  static encodeRaw(
-    data: DNSQuestionType,
-    nextOffset: number,
-    thisObject: DNSPacket
-  ): Buffer {
-    const dnsQuestion = new DNSQuestion(data);
-    dnsQuestion.nextOffset = nextOffset;
-    dnsQuestion.dnsObject = thisObject; // Attach the top-level DNSPacket object
-    return dnsQuestion.encode();
+  static encodeRaw(data: DNSQuestionType, nextOffset: number, thisObject: DNSPacket): Buffer {
+    const dnsQuestion = new DNSQuestion(data)
+    dnsQuestion.nextOffset = nextOffset
+    dnsQuestion.dnsObject = thisObject // Attach the top-level DNSPacket object
+    return dnsQuestion.encode()
   }
 
   /**
@@ -93,7 +80,7 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
       name: this.name,
       type: this.type,
       class: this.class,
-    };
+    }
   }
 
   /**
@@ -106,14 +93,8 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
    *   - nextOffset: The offset immediately after the decoded DNS question.
    */
 
-  static decode(
-    buffer: Buffer,
-    offset: number = 0
-  ): { result: DNSQuestion; nextOffset: number } {
-    const { domainName: decodedName, nextOffset } = decodeDomainName(
-      buffer,
-      offset
-    );
+  static decode(buffer: Buffer, offset: number = 0): { result: DNSQuestion; nextOffset: number } {
+    const { domainName: decodedName, nextOffset } = decodeDomainName(buffer, offset)
     return {
       result: new DNSQuestion({
         name: decodedName,
@@ -121,15 +102,15 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
         class: buffer.readUInt16BE(nextOffset + 2),
       }),
       nextOffset: nextOffset + 4,
-    };
+    }
   }
 }
 
 const question = new DNSQuestion({
-  name: "google.com",
+  name: 'google.com',
   type: RecordType.A,
   class: RecordClass.IN,
-});
+})
 // console.log(question.encode());
 // const { result: decodedQuestion, nextOffset: qOffset } = DNSQuestion.decode(
 //   question.encode()

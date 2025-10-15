@@ -1,6 +1,6 @@
-import type { RedisClientType } from "@redis/client";
-import { Redis } from "../redis";
-import type { DNSAnswerType, DNSQuestionType } from "../types";
+import type { RedisClientType } from '@redis/client'
+import { Redis } from '../redis'
+import type { DNSAnswerType, DNSQuestionType } from '../types'
 
 /**
  * A simple DNS cache that uses Redis as the underlying storage.
@@ -19,20 +19,20 @@ export class DNSCache {
   /**
    * The Redis client used by the cache.
    */
-  private readonly redis: RedisClientType;
+  private readonly redis: RedisClientType
 
   /**
    * Creates a new instance of the DNSCache class.
    */
   constructor() {
-    this.redis = Redis;
+    this.redis = Redis
   }
 
   /**
    * Gets the Redis client used by the cache.
    */
   get redisClient() {
-    return this.redis;
+    return this.redis
   }
 
   /**
@@ -40,7 +40,7 @@ export class DNSCache {
    */
   private async connect() {
     if (!this.redis.isOpen) {
-      await this.redis.connect();
+      await this.redis.connect()
     }
   }
 
@@ -49,7 +49,7 @@ export class DNSCache {
    */
   private async close() {
     if (this.redis.isOpen) {
-      await this.redis.quit();
+      await this.redis.quit()
     }
   }
 
@@ -57,9 +57,9 @@ export class DNSCache {
    * Clears the entire cache.
    */
   async clear() {
-    await this.connect();
-    await this.redis.flushAll();
-    await this.close();
+    await this.connect()
+    await this.redis.flushAll()
+    await this.close()
   }
 
   /**
@@ -71,17 +71,17 @@ export class DNSCache {
    */
   async set(
     question: DNSQuestionType,
-    answers: DNSAnswerType[]
+    answers: DNSAnswerType[],
   ): Promise<null | string | undefined> {
-    await this.connect();
+    await this.connect()
 
     if (answers.length === 0) {
-      await this.close();
-      return null;
+      await this.close()
+      return null
     }
 
-    const key = `domain:${question.name}:${question.type}:${question.class}`;
-    const value = JSON.stringify(answers);
+    const key = `domain:${question.name}:${question.type}:${question.class}`
+    const value = JSON.stringify(answers)
 
     try {
       // Use NX to set the value only if it does not already exist.
@@ -89,12 +89,12 @@ export class DNSCache {
       const result = await this.redis.set(key, value, {
         NX: true,
         EX: answers[0].ttl,
-      });
-      return result;
+      })
+      return result
     } catch (error) {
-      console.error("Error setting DNS answer:", error);
+      console.error('Error setting DNS answer:', error)
     } finally {
-      await this.close();
+      await this.close()
     }
   }
 
@@ -105,21 +105,19 @@ export class DNSCache {
    * @returns A promise that resolves to the DNS answers or null if the answers
    * are not in the cache.
    */
-  async get(
-    question: DNSQuestionType
-  ): Promise<null | DNSAnswerType[] | undefined> {
-    await this.connect();
+  async get(question: DNSQuestionType): Promise<null | DNSAnswerType[] | undefined> {
+    await this.connect()
 
-    const key = `domain:${question.name}:${question.type}:${question.class}`;
+    const key = `domain:${question.name}:${question.type}:${question.class}`
 
     try {
-      const value = await this.redis.get(key);
+      const value = await this.redis.get(key)
 
-      return value ? JSON.parse(value) : null;
+      return value ? JSON.parse(value) : null
     } catch (error) {
-      console.error("Error getting DNS answer:", error);
+      console.error('Error getting DNS answer:', error)
     } finally {
-      await this.close();
+      await this.close()
     }
   }
 }

@@ -11,11 +11,14 @@
     "start": "bash scripts/start-all.sh",
     "start:udp": "node dist/udp-server.js",
     "docker:redis": "docker run -p 6379:6379 --name dns-redis -d redis:latest",
-    "docker:compose": "docker-compose up --build --abort-on-container-exit"
+    "docker:compose": "docker-compose up --build --abort-on-container-exit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@types/bun": "latest",
-    "@types/dns-packet": "^5.6.5"
+    "@types/dns-packet": "^5.6.5",
+    "prettier": "^2.8.8"
   },
   "dependencies": {
     "@types/express": "^5.0.2",

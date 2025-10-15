@@ -1,5 +1,5 @@
-import { RecordType, type DNSAnswerType, type RDataType, type SOA_RECORD } from "../types";
-import { decodeDomainName, encodeDomainName } from "../utils";
+import { RecordType, type DNSAnswerType, type RDataType, type SOA_RECORD } from '../types'
+import { decodeDomainName, encodeDomainName } from '../utils'
 
 // -------------------------------- decodeRecordData ----------------------------------
 /**
@@ -15,11 +15,11 @@ export function decodeRecordData(
   buffer: Buffer,
   offset: number,
   type: RecordType,
-  rdlength: number
+  rdlength: number,
 ): RDataType {
   // const rDataBuffer = buffer.subarray(offset, offset + rdlength); // extract the rdata buffer
-  const data: RDataType = typeMap[type].decodeFn(buffer, offset, rdlength);
-  return data;
+  const data: RDataType = typeMap[type].decodeFn(buffer, offset, rdlength)
+  return data
 }
 
 /**
@@ -28,13 +28,9 @@ export function decodeRecordData(
  * @param buffer The Buffer containing the A record.
  * @returns The decoded A record as a string.
  */
-export function decodeARecord(
-  buffer: Buffer,
-  offset: number,
-  rdlength: number
-): string {
-  const rDataBuffer = buffer.subarray(offset, offset + rdlength);
-  return rDataBuffer.map((byte) => byte).join("."); // no need for explicit toString as map converts them into decimal digits and then join method converts them into string
+export function decodeARecord(buffer: Buffer, offset: number, rdlength: number): string {
+  const rDataBuffer = buffer.subarray(offset, offset + rdlength)
+  return rDataBuffer.map((byte) => byte).join('.') // no need for explicit toString as map converts them into decimal digits and then join method converts them into string
 }
 
 /**
@@ -43,13 +39,9 @@ export function decodeARecord(
  * @param buffer The Buffer containing the AAAA record.
  * @returns The decoded AAAA record as a string.
  */
-export function decodeAAAARecord(
-  buffer: Buffer,
-  offset: number,
-  rdlength: number
-): string {
-  const rDataBuffer = buffer.subarray(offset, offset + rdlength);
-  return rDataBuffer.map((byte) => byte).join(":");
+export function decodeAAAARecord(buffer: Buffer, offset: number, rdlength: number): string {
+  const rDataBuffer = buffer.subarray(offset, offset + rdlength)
+  return rDataBuffer.map((byte) => byte).join(':')
 }
 
 /**
@@ -58,13 +50,9 @@ export function decodeAAAARecord(
  * @param buffer The Buffer containing the CNAME record.
  * @returns The decoded CNAME record as a string.
  */
-export function decodeCNAMERecord(
-  buffer: Buffer,
-  offset: number,
-  rdlength: number
-): string {
-  const { domainName } = decodeDomainName(buffer, offset);
-  return domainName;
+export function decodeCNAMERecord(buffer: Buffer, offset: number, rdlength: number): string {
+  const { domainName } = decodeDomainName(buffer, offset)
+  return domainName
 }
 
 /**
@@ -73,13 +61,9 @@ export function decodeCNAMERecord(
  * @param buffer The Buffer containing the NS record.
  * @returns The decoded NS record as a string.
  */
-export function decodeNSRecord(
-  buffer: Buffer,
-  offset: number,
-  rdlength: number
-): string {
-  const { domainName } = decodeDomainName(buffer, offset);
-  return domainName;
+export function decodeNSRecord(buffer: Buffer, offset: number, rdlength: number): string {
+  const { domainName } = decodeDomainName(buffer, offset)
+  return domainName
 }
 
 /**
@@ -88,17 +72,13 @@ export function decodeNSRecord(
  * @param buffer The Buffer containing the TXT record.
  * @returns The decoded TXT record as a string.
  */
-export function decodeTXTRecord(
-  buffer: Buffer,
-  offset: number,
-  rdlength: number
-): string {
-  const rDataBuffer = buffer.subarray(offset, offset + rdlength);
-  let result = "";
+export function decodeTXTRecord(buffer: Buffer, offset: number, rdlength: number): string {
+  const rDataBuffer = buffer.subarray(offset, offset + rdlength)
+  let result = ''
   for (const byte of rDataBuffer) {
-    result += String.fromCharCode(byte);
+    result += String.fromCharCode(byte)
   }
-  return result;
+  return result
 }
 
 /**
@@ -123,57 +103,51 @@ export function decodeTXTRecord(
 export function decodeSOARecord(
   buffer: Buffer,
   offset: number,
-  rdlength: number
+  rdlength: number,
 ): {
-  mname: string;
-  rname: string;
-  serial: number;
-  refresh: number;
-  retry: number;
-  expire: number;
-  minimum: number;
+  mname: string
+  rname: string
+  serial: number
+  refresh: number
+  retry: number
+  expire: number
+  minimum: number
 } {
   const soaRecord = {} as {
-    mname: string;
-    rname: string;
-    serial: number;
-    refresh: number;
-    retry: number;
-    expire: number;
-    minimum: number;
-  };
+    mname: string
+    rname: string
+    serial: number
+    refresh: number
+    retry: number
+    expire: number
+    minimum: number
+  }
 
-  let currentOffset = offset;
-  const { domainName: mname, nextOffset: mnameOffset } = decodeDomainName(
-    buffer,
-    currentOffset
-  );
-  soaRecord.mname = mname;
-  currentOffset = mnameOffset;
+  let currentOffset = offset
+  const { domainName: mname, nextOffset: mnameOffset } = decodeDomainName(buffer, currentOffset)
+  soaRecord.mname = mname
+  currentOffset = mnameOffset
 
-  const { domainName: rname, nextOffset: rnameOffset } = decodeDomainName(
-    buffer,
-    currentOffset
-  );
-  soaRecord.rname = rname;
-  currentOffset = rnameOffset;
+  const { domainName: rname, nextOffset: rnameOffset } = decodeDomainName(buffer, currentOffset)
+  soaRecord.rname = rname
+  currentOffset = rnameOffset
 
-  soaRecord.serial = buffer.readUInt32BE(currentOffset);
-  currentOffset += 4;
+  soaRecord.serial = buffer.readUInt32BE(currentOffset)
+  currentOffset += 4
 
-  soaRecord.refresh = buffer.readUInt32BE(currentOffset);
-  currentOffset += 4;
+  soaRecord.refresh = buffer.readUInt32BE(currentOffset)
+  currentOffset += 4
 
-  soaRecord.retry = buffer.readUInt32BE(currentOffset);
-  currentOffset += 4;
+  soaRecord.retry = buffer.readUInt32BE(currentOffset)
+  currentOffset += 4
 
-  soaRecord.expire = buffer.readUInt32BE(currentOffset);
-  currentOffset += 4;
+  soaRecord.expire = buffer.readUInt32BE(currentOffset)
+  currentOffset += 4
 
-  soaRecord.minimum = buffer.readUInt32BE(currentOffset);
-  currentOffset += 4;
+  soaRecord.minimum = buffer.readUInt32BE(currentOffset)
+  currentOffset += 4
 
-  return soaRecord;
+  return soaRecord
 }
 
 // -------------------------------- encodeRecordData ----------------------------------
@@ -189,10 +163,10 @@ export function encodeRecordData(
   this: DNSAnswerType,
   data: RDataType,
   type: RecordType,
-  nextOffset: number
+  nextOffset: number,
 ): Buffer {
-  const buffer = typeMap[type].encodeFn.apply(this, [data, nextOffset]);
-  return buffer;
+  const buffer = typeMap[type].encodeFn.apply(this, [data, nextOffset])
+  return buffer
 }
 
 /**
@@ -202,9 +176,9 @@ export function encodeRecordData(
  * @returns The encoded A record as a Buffer.
  */
 export function encodeArecord(address: RDataType, nextOffset: number): Buffer {
-  address = address as string;
-  const octets = address.split(".").map((octet) => parseInt(octet));
-  return Buffer.from(octets);
+  address = address as string
+  const octets = address.split('.').map((octet) => parseInt(octet))
+  return Buffer.from(octets)
 }
 
 /**
@@ -213,13 +187,10 @@ export function encodeArecord(address: RDataType, nextOffset: number): Buffer {
  * @param address The address to encode, in colon-separated hex notation.
  * @returns The encoded AAAA record as a Buffer.
  */
-export function encodeAAAARecord(
-  address: RDataType,
-  nextOffset: number
-): Buffer {
-  address = address as string;
-  const octets = address.split(":").map((octet) => parseInt(octet, 16));
-  return Buffer.from(octets);
+export function encodeAAAARecord(address: RDataType, nextOffset: number): Buffer {
+  address = address as string
+  const octets = address.split(':').map((octet) => parseInt(octet, 16))
+  return Buffer.from(octets)
 }
 
 /**
@@ -231,13 +202,9 @@ export function encodeAAAARecord(
 export function encodeCNAMERecord(
   this: DNSAnswerType,
   domainName: RDataType,
-  nextOffset: number
+  nextOffset: number,
 ): Buffer {
-  return encodeDomainName(
-    domainName as string,
-    this.dnsObject?.encodedLabels,
-    nextOffset
-  );
+  return encodeDomainName(domainName as string, this.dnsObject?.encodedLabels, nextOffset)
 }
 
 /**
@@ -249,13 +216,9 @@ export function encodeCNAMERecord(
 export function encodeNSRecord(
   this: DNSAnswerType,
   domainName: RDataType,
-  nextOffset: number
+  nextOffset: number,
 ): Buffer {
-  return encodeDomainName(
-    domainName as string,
-    this.dnsObject?.encodedLabels,
-    nextOffset
-  );
+  return encodeDomainName(domainName as string, this.dnsObject?.encodedLabels, nextOffset)
 }
 
 /**
@@ -265,9 +228,9 @@ export function encodeNSRecord(
  * @returns The encoded TXT record as a Buffer.
  */
 export function encodeTXTRecord(data: RDataType, nextOffset: number): Buffer {
-  data = data as string;
-  const bytes = data.split("").map((char) => char.charCodeAt(0));
-  return Buffer.from(bytes);
+  data = data as string
+  const bytes = data.split('').map((char) => char.charCodeAt(0))
+  return Buffer.from(bytes)
 }
 
 /**
@@ -284,46 +247,40 @@ export function encodeTXTRecord(data: RDataType, nextOffset: number): Buffer {
  * @returns The encoded SOA record as a Buffer.
  */
 export function encodeSOARecord(this: DNSAnswerType, data: RDataType, nextOffset: number): Buffer {
-  data = data as SOA_RECORD;
-  const bufferArray: number[] = [];
+  data = data as SOA_RECORD
+  const bufferArray: number[] = []
 
+  bufferArray.push(...encodeDomainName(data.mname, this.dnsObject?.encodedLabels, nextOffset))
   bufferArray.push(
-    ...encodeDomainName(data.mname, this.dnsObject?.encodedLabels, nextOffset)
-  );
-  bufferArray.push(
-    ...encodeDomainName(
-      data.rname,
-      this.dnsObject?.encodedLabels,
-      nextOffset + bufferArray.length
-    )
-  );
+    ...encodeDomainName(data.rname, this.dnsObject?.encodedLabels, nextOffset + bufferArray.length),
+  )
 
-  bufferArray.push((data.serial >>> 24) & 0xff);
-  bufferArray.push((data.serial >>> 16) & 0xff);
-  bufferArray.push((data.serial >>> 8) & 0xff);
-  bufferArray.push(data.serial & 0xff);
+  bufferArray.push((data.serial >>> 24) & 0xff)
+  bufferArray.push((data.serial >>> 16) & 0xff)
+  bufferArray.push((data.serial >>> 8) & 0xff)
+  bufferArray.push(data.serial & 0xff)
 
-  bufferArray.push((data.refresh >>> 24) & 0xff);
-  bufferArray.push((data.refresh >>> 16) & 0xff);
-  bufferArray.push((data.refresh >>> 8) & 0xff);
-  bufferArray.push(data.refresh & 0xff);
+  bufferArray.push((data.refresh >>> 24) & 0xff)
+  bufferArray.push((data.refresh >>> 16) & 0xff)
+  bufferArray.push((data.refresh >>> 8) & 0xff)
+  bufferArray.push(data.refresh & 0xff)
 
-  bufferArray.push((data.retry >>> 24) & 0xff);
-  bufferArray.push((data.retry >>> 16) & 0xff);
-  bufferArray.push((data.retry >>> 8) & 0xff);
-  bufferArray.push(data.retry & 0xff);
+  bufferArray.push((data.retry >>> 24) & 0xff)
+  bufferArray.push((data.retry >>> 16) & 0xff)
+  bufferArray.push((data.retry >>> 8) & 0xff)
+  bufferArray.push(data.retry & 0xff)
 
-  bufferArray.push((data.expire >>> 24) & 0xff);
-  bufferArray.push((data.expire >>> 16) & 0xff);
-  bufferArray.push((data.expire >>> 8) & 0xff);
-  bufferArray.push(data.expire & 0xff);
+  bufferArray.push((data.expire >>> 24) & 0xff)
+  bufferArray.push((data.expire >>> 16) & 0xff)
+  bufferArray.push((data.expire >>> 8) & 0xff)
+  bufferArray.push(data.expire & 0xff)
 
-  bufferArray.push((data.minimum >>> 24) & 0xff);
-  bufferArray.push((data.minimum >>> 16) & 0xff);
-  bufferArray.push((data.minimum >>> 8) & 0xff);
-  bufferArray.push(data.minimum & 0xff);
+  bufferArray.push((data.minimum >>> 24) & 0xff)
+  bufferArray.push((data.minimum >>> 16) & 0xff)
+  bufferArray.push((data.minimum >>> 8) & 0xff)
+  bufferArray.push(data.minimum & 0xff)
 
-  return Buffer.from(bufferArray);
+  return Buffer.from(bufferArray)
 }
 
 // typeMap ----------------------------------
@@ -340,7 +297,7 @@ export const typeMap: {
      * @param rdlength The length of the rdata field.
      * @returns The decoded record data.
      */
-    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType;
+    decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType
     /**
      * Encodes a DNS record of the specified type into a Buffer.
      *
@@ -349,143 +306,143 @@ export const typeMap: {
      * @param nextOffset The next offset to start encoding from.
      * @returns The encoded record data as a Buffer.
      */
-    encodeFn(this: DNSAnswerType, data: RDataType, nextOffset: number): Buffer;
-  };
+    encodeFn(this: DNSAnswerType, data: RDataType, nextOffset: number): Buffer
+  }
 } = {
   [RecordType.A]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return decodeARecord(buffer, offset, rdlength);
+      return decodeARecord(buffer, offset, rdlength)
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return encodeArecord.apply(this, [data, nextOffset]);
+      return encodeArecord.apply(this, [data, nextOffset])
     },
   },
   [RecordType.AAAA]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return decodeAAAARecord(buffer, offset, rdlength);
+      return decodeAAAARecord(buffer, offset, rdlength)
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return encodeAAAARecord.apply(this, [data, nextOffset]);
+      return encodeAAAARecord.apply(this, [data, nextOffset])
     },
   },
   [RecordType.NS]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return decodeNSRecord(buffer, offset, rdlength);
+      return decodeNSRecord(buffer, offset, rdlength)
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return encodeNSRecord.apply(this, [data, nextOffset]);
+      return encodeNSRecord.apply(this, [data, nextOffset])
     },
   },
   [RecordType.MD]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.MF]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.CNAME]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return decodeCNAMERecord(buffer, offset, rdlength);
+      return decodeCNAMERecord(buffer, offset, rdlength)
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return encodeCNAMERecord.apply(this, [data, nextOffset]);
+      return encodeCNAMERecord.apply(this, [data, nextOffset])
     },
   },
   [RecordType.SOA]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return decodeSOARecord(buffer, offset, rdlength);
+      return decodeSOARecord(buffer, offset, rdlength)
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return encodeSOARecord.apply(this, [data, nextOffset]);
+      return encodeSOARecord.apply(this, [data, nextOffset])
     },
   },
   [RecordType.MB]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.MG]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.MR]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.NULL]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.WKS]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.PTR]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.HINFO]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.MINFO]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.MX]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return "Method not implemented";
+      return 'Method not implemented'
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return Buffer.from([0]);
+      return Buffer.from([0])
     },
   },
   [RecordType.TXT]: {
     decodeFn(buffer: Buffer, offset: number, rdlength: number): RDataType {
-      return decodeTXTRecord(buffer, offset, rdlength);
+      return decodeTXTRecord(buffer, offset, rdlength)
     },
     encodeFn(data: RDataType, nextOffset: number): Buffer {
-      return encodeTXTRecord.apply(this, [data, nextOffset]);
+      return encodeTXTRecord.apply(this, [data, nextOffset])
     },
   },
-};
+}
