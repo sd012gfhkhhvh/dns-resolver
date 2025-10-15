@@ -256,7 +256,7 @@ export async function recursiveLookup(
           questions: [
             {
               name: validAuthorityRecord.name,
-              type: requestQuestion.type,
+              type: RecordType.A,
               class: validAuthorityRecord.class,
             },
           ],
