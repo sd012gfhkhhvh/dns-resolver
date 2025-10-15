@@ -74,7 +74,7 @@ udpSocket.on("message", async (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       console.log("response packet length: ", responseBuffer.length, "\n");
     }
     // send data
-    udpSocket.send(responseBuffer, remoteAddr.port, remoteAddr.address);
+    udpSocket.send(new Uint8Array(responseBuffer), remoteAddr.port, remoteAddr.address);
   } catch (e) {
     console.log(`Error sending data: ${e}\n`);
   }

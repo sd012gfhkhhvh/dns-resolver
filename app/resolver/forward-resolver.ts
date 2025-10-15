@@ -13,7 +13,7 @@ export async function forwardResolver(
   const udpSocket = dgram.createSocket({ type: "udp4" });
 
   const answer = await new Promise<DNSPacketType>((resolve, reject) => {
-    udpSocket.send(queryPacket, forwardPort, forwardHost);
+    udpSocket.send(new Uint8Array(queryPacket), forwardPort, forwardHost);
 
     udpSocket.on("message", (msg: Buffer) => {
       try {

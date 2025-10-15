@@ -54,7 +54,8 @@ export class DNSQuestion extends BaseDNSComponent<DNSQuestionType> {
     const buffer = Buffer.alloc(bufferSize);
 
     // Copy name into buffer
-    nameBuffer.copy(buffer, 0);
+    // nameBuffer.copy(buffer, 0);
+    buffer.set(nameBuffer, 0);
 
     // Write type and class
     buffer.writeUInt16BE(this.type, nameBuffer.length);

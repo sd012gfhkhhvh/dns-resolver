@@ -249,6 +249,8 @@ export async function recursiveLookup(
 
       // if valid authority record is present then perform another lookup
       if (validAuthorityRecord) {
+        console.log("validAuthorityRecord", validAuthorityRecord);
+        
         const newQuery = new DNSPacket({
           header: requestHeader,
           questions: [
@@ -261,7 +263,7 @@ export async function recursiveLookup(
         }).toObject();
         const res = await recursiveLookup(newQuery);
 
-        if (res.answers) {
+        if (res.answers && res.answers.length > 0) {
           const randomResponse: DNSAnswerType = pickRandomFromArray(
             res.answers
           );

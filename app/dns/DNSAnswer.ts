@@ -82,7 +82,8 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
     const buffer = Buffer.alloc(bufferSize);
 
     // Copy name into buffer
-    nameBuffer.copy(buffer, 0);
+    // nameBuffer.copy(buffer, 0);
+    buffer.set(nameBuffer, 0);
 
     // Write type, class, TTL, and rdlength
     buffer.writeUInt16BE(this.type, nameBuffer.length);
@@ -92,7 +93,8 @@ export class DNSAnswer extends BaseDNSComponent<DNSAnswerType> {
     buffer.writeUInt16BE(this.rdlength, nameBuffer.length + 8);
 
     // Copy rdata into buffer
-    rData.copy(buffer, nameBuffer.length + 10);
+    // rData.copy(buffer, nameBuffer.length + 10);
+    buffer.set(rData, nameBuffer.length + 10);
 
     return buffer;
   }

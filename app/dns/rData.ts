@@ -1,4 +1,4 @@
-import { RecordType, type RDataType, type SOA_RECORD } from "../types";
+import { RecordType, type DNSAnswerType, type RDataType, type SOA_RECORD } from "../types";
 import { decodeDomainName, encodeDomainName } from "../utils";
 
 // -------------------------------- decodeRecordData ----------------------------------
@@ -186,6 +186,7 @@ export function decodeSOARecord(
  * @returns The encoded record data as a Buffer.
  */
 export function encodeRecordData(
+  this: DNSAnswerType,
   data: RDataType,
   type: RecordType,
   nextOffset: number
@@ -228,6 +229,7 @@ export function encodeAAAARecord(
  * @returns The encoded CNAME record as a Buffer.
  */
 export function encodeCNAMERecord(
+  this: DNSAnswerType,
   domainName: RDataType,
   nextOffset: number
 ): Buffer {
@@ -245,6 +247,7 @@ export function encodeCNAMERecord(
  * @returns The encoded NS record as a Buffer.
  */
 export function encodeNSRecord(
+  this: DNSAnswerType,
   domainName: RDataType,
   nextOffset: number
 ): Buffer {
@@ -280,7 +283,7 @@ export function encodeTXTRecord(data: RDataType, nextOffset: number): Buffer {
  *   - minimum: the minimum TTL
  * @returns The encoded SOA record as a Buffer.
  */
-export function encodeSOARecord(data: RDataType, nextOffset: number): Buffer {
+export function encodeSOARecord(this: DNSAnswerType, data: RDataType, nextOffset: number): Buffer {
   data = data as SOA_RECORD;
   const bufferArray: number[] = [];
 
@@ -341,11 +344,12 @@ export const typeMap: {
     /**
      * Encodes a DNS record of the specified type into a Buffer.
      *
+     * @param this The DNSAnswerType instance.
      * @param data The record data to encode.
      * @param nextOffset The next offset to start encoding from.
      * @returns The encoded record data as a Buffer.
      */
-    encodeFn(data: RDataType, nextOffset: number): Buffer;
+    encodeFn(this: DNSAnswerType, data: RDataType, nextOffset: number): Buffer;
   };
 } = {
   [RecordType.A]: {

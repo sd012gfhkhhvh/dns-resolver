@@ -22,9 +22,13 @@ const querySchema = z.object({
   domain: z.string().refine(isValidDomain, {
     message: "Invalid domain name!",
   }),
-  type: z.string().refine(isValidType, {
-    message: "Invalid type!",
-  }),
+  type: z
+    .string()
+    .refine(isValidType, {
+      message: "Invalid type!",
+    })
+    .optional()
+    .default("A"),
   host: z
     .string()
     .refine(isValidIpv4, {
@@ -50,7 +54,7 @@ app.get("/resolve", async (req: Request, res: Response) => {
       return;
     }
 
-    const { domain, type, host } = req.query as QueryType;
+    const { domain, type, host } = parsedQuery.data as QueryType;
 
     const dnsQueryObject: DNSPacketType = {
       header: {
@@ -88,7 +92,75 @@ app.get("/resolve", async (req: Request, res: Response) => {
       host || FORWARD_SERVER_HOST
     );
 
-    res.json(dnsResponseObject);
+    // res.json(dnsResponseObject);
+    res.send(`
+      <html>
+      <head>
+        <title>DNS Query Result</title>
+        <style>
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          background: #f7f9fa;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 700px;
+          margin: 40px auto;
+          background: #fff;
+          border-radius: 10px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          padding: 32px 40px 24px 40px;
+        }
+        h2 {
+          color: #2d6cdf;
+          margin-top: 0;
+        }
+        h3 {
+          color: #444;
+          margin-bottom: 8px;
+        }
+        p {
+          font-size: 1.05em;
+          margin: 8px 0;
+        }
+        strong {
+          color: #222;
+        }
+        pre {
+          background: #f4f6f8;
+          border-radius: 6px;
+          padding: 16px;
+          font-size: 0.97em;
+          overflow-x: auto;
+          border: 1px solid #e0e6ed;
+        }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+        <h2>Query Result for ${domain} (${type.toUpperCase()})</h2>
+        <p><strong>Queried DNS Server:</strong> ${
+          host || `${FORWARD_SERVER_HOST}:${FORWARD_SERVER_PORT}`
+        }</p>
+        <p><strong>Response Code:</strong> ${
+          dnsResponseObject.header?.rcode
+        }</p>
+        <p><strong>Answer Count:</strong> ${
+          dnsResponseObject.header?.ancount
+        }</p>
+        <p><strong>Authority Count:</strong> ${
+          dnsResponseObject.header?.nscount
+        }</p>
+        <p><strong>Additional Count:</strong> ${
+          dnsResponseObject.header?.arcount
+        }</p>
+        <h3>Full Response Object:</h3>
+        <pre>${JSON.stringify(dnsResponseObject, null, 2)}</pre>
+        </div>
+      </body>
+      </html>
+    `);
   } catch (error) {
     console.error(error);
     res.status(500).send("Internal server error");

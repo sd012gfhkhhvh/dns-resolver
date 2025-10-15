@@ -1,4 +1,5 @@
 import { DNSAnswer } from "./dns/DNSAnswer";
+import type { DNSPacket } from "./dns/DNSPacket";
 import {
   RecordType,
   RecordTypeString,
@@ -230,6 +231,7 @@ export function decodeRecords(
  * @returns An object containing the encoded Buffer and the offset immediately after the encoded records.
  */
 export function encodeRecords(
+  this: DNSPacket,
   records: DNSAnswerType[],
   nextOffset: number
 ): {
@@ -241,7 +243,10 @@ export function encodeRecords(
 
   for (const record of records) {
     const encodedRecord = DNSAnswer.encodeRaw(record, offset, this);
-    encodedRecords = Buffer.concat([encodedRecords, encodedRecord]);
+    encodedRecords = Buffer.concat([
+      new Uint8Array(encodedRecords),
+      new Uint8Array(encodedRecord),
+    ]);
     offset += encodedRecord.length;
   }
 

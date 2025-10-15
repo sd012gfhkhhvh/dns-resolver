@@ -56,7 +56,8 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
     // Encode questions
     for (const question of this.questions) {
       const encodedQuestion = DNSQuestion.encodeRaw(question, qOffset, this);
-      encodedQuestions = Buffer.concat([encodedQuestions, encodedQuestion]);
+      // encodedQuestions = Buffer.concat([encodedQuestions, encodedQuestion]);
+      encodedQuestions = Buffer.concat([new Uint8Array(encodedQuestions), new Uint8Array(encodedQuestion)]);
       qOffset += encodedQuestion.length;
     }
 
@@ -73,11 +74,11 @@ export class DNSPacket extends BaseDNSComponent<DNSPacketType> {
       encodeRecords.apply(this, [this.additionals, auOffset]);
 
     return Buffer.concat([
-      encodedHeader,
-      encodedQuestions,
-      encodedAnswers,
-      encodedAuthorities,
-      encodedAdditionals,
+      new Uint8Array(encodedHeader),
+      new Uint8Array(encodedQuestions),
+      new Uint8Array(encodedAnswers),
+      new Uint8Array(encodedAuthorities),
+      new Uint8Array(encodedAdditionals),
     ]);
   }
 

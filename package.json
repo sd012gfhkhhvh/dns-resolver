@@ -10,6 +10,7 @@
     "build:udp": "bun build --target=node app/udp-server.ts --outdir=dist",
     "start": "bash scripts/start-all.sh",
     "start:udp": "node dist/udp-server.js",
+    "docker:redis": "docker run -p 6379:6379 --name dns-redis -d redis:latest",
     "docker:compose": "docker-compose up --build --abort-on-container-exit"
   },
   "devDependencies": {
