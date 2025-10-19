@@ -9,7 +9,11 @@ Docker Compose, environment variables you can adjust, and common troubleshooting
 
 ## Requirements
 
-- Node.js (only required if you run the built JS with `node`)
+- **Bun** (primary runtime for development and building)
+- **Node.js** (only required if you run the built JS with `node`)
+- **Docker & Docker Compose** (for containerized deployment)
+
+## Local Development
 
 1. Install dependencies:
 
